@@ -1,0 +1,4 @@
+[
+  { "name": "Standard", "validity": "30d" },
+  { "name": "Premium", "validity": "365d" }
+]

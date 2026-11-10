@@ -1,0 +1,5 @@
+[
+  {"user": 123, "profile": {"unexpected": "object"}},
+  {"users": "", "profile": 42},
+  {"name": [], "profile": null}
+]

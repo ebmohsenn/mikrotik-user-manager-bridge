@@ -1,0 +1,174 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: mikrotik-user-manager-bridge\n"
+"POT-Creation-Date: 2025-09-16 00:00+0000\n"
+"PO-Revision-Date: 2025-09-16 00:00+0000\n"
+"Language: fa_IR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: msgfmt\n"
+
+#: includes/class-dashboard-widgets.php:11
+msgid "%s Affiliates"
+msgstr "همکاران %s"
+
+#: includes/class-dashboard-widgets.php:12
+msgid "MikroTik Overview"
+msgstr "مرور کلی MikroTik"
+
+#: includes/class-dashboard-widgets.php:13
+msgid "%s Users"
+msgstr "کاربران %s"
+
+#: includes/class-dashboard-widgets.php:21
+msgid "%d affiliate partners connected."
+msgstr "%d همکار فروش متصل هستند."
+
+#: includes/class-dashboard-widgets.php:24
+msgid "Top affiliate"
+msgstr "برترین همکار"
+
+#: includes/class-dashboard-widgets.php:24
+msgid "%d customers"
+msgstr "%d مشتری"
+
+#: includes/class-dashboard-widgets.php:26
+msgid "Invite your first affiliate to start reselling plans."
+msgstr "برای شروع فروش اشتراک‌ها، اولین همکار خود را دعوت کنید."
+
+#: includes/class-dashboard-widgets.php:33
+msgid "Router host"
+msgstr "میزبان روتر"
+
+#: includes/class-dashboard-widgets.php:34
+msgid "Not configured"
+msgstr "پیکربندی نشده"
+
+#: includes/class-dashboard-widgets.php:35
+msgid "API user"
+msgstr "کاربر API"
+
+#: includes/class-dashboard-widgets.php:38
+msgid "Last status"
+msgstr "آخرین وضعیت"
+
+#: includes/class-dashboard-widgets.php:41
+msgid "Updated"
+msgstr "به‌روزرسانی شد"
+
+#: includes/class-dashboard-widgets.php:44
+msgid "Open MikroTik Manager"
+msgstr "باز کردن مدیریت MikroTik"
+
+#: includes/class-dashboard-widgets.php:51
+msgid "WordPress users"
+msgstr "کاربران وردپرس"
+
+#: includes/class-dashboard-widgets.php:52
+msgid "MikroTik synced users"
+msgstr "کاربران همگام‌شده با MikroTik"
+
+#: includes/class-dashboard-widgets.php:53
+msgid "Available profiles"
+msgstr "پروفایل‌های در دسترس"
+
+#: includes/class-dashboard-widgets.php:55
+msgid "Use the dashboard tabs to investigate mismatches or assign profiles manually."
+msgstr "از تب‌های داشبورد برای بررسی اختلاف‌ها یا اختصاص دستی پروفایل‌ها استفاده کنید."
+
+#: includes/class-dashboard-widgets.php:60
+msgid "Important information"
+msgstr "اطلاعات مهم"
+
+#: includes/class-dashboard-widgets.php:63
+msgid "Rate limited"
+msgstr "محدودیت نرخ"
+
+#: admin/src/App.jsx:24
+msgid "Dashboard"
+msgstr "داشبورد"
+
+#: includes/class-mwp-admin.php
+msgid "Refresh Groups"
+msgstr "به‌روزرسانی گروه‌ها"
+
+#: includes/class-mwp-admin.php
+msgid "Groups refreshed"
+msgstr "گروه‌ها به‌روزرسانی شدند"
+
+#: includes/class-mwp-admin.php
+msgid "Force Refresh"
+msgstr "تازه‌سازی فوری"
+
+#: includes/class-mwp-admin.php
+msgid "Live profiles"
+msgstr "پروفایل‌های زنده"
+
+#: admin/src/components/UsersTable.jsx
+msgid "Affiliate"
+msgstr "همکار فروش"
+
+#: admin/src/App.jsx:25
+msgid "Users"
+msgstr "کاربران"
+
+#: admin/src/App.jsx:26
+msgid "Profiles"
+msgstr "پروفایل‌ها"
+
+#: admin/src/App.jsx:27
+msgid "Groups"
+msgstr "گروه‌ها"
+
+#: admin/src/App.jsx:28
+msgid "User Profiles"
+msgstr "پروفایل‌های کاربران"
+
+#: admin/src/App.jsx:29
+msgid "Routers"
+msgstr "روترها"
+
+#: admin/src/App.jsx:30
+msgid "Affiliates"
+msgstr "همکاران"
+
+#: admin/src/App.jsx:31
+msgid "Logs"
+msgstr "گزارش‌ها"
+
+#: admin/src/App.jsx:32
+msgid "Settings"
+msgstr "تنظیمات"
+
+#: admin/src/components/UsersTable.jsx:90
+msgid "Username"
+msgstr "نام کاربری"
+
+#: admin/src/components/UsersTable.jsx:92
+msgid "Shared"
+msgstr "اشتراک"
+
+#: admin/src/components/UsersTable.jsx:93
+msgid "Actions"
+msgstr "اقدامات"
+
+#: admin/src/components/UsersTable.jsx:132
+msgid "No users."
+msgstr "کاربری یافت نشد."
+
+#: admin/src/components/Affiliates.jsx:72
+msgid "Display name"
+msgstr "نام نمایشی"
+
+#: admin/src/components/Affiliates.jsx:107
+msgid "Name"
+msgstr "نام"
+
+#: admin/src/components/Affiliates.jsx:121
+msgid "Remove"
+msgstr "حذف"
+
+#: admin/src/components/UsersTable.jsx:324
+msgid "No affiliates yet."
+msgstr "هنوز همکار فروشی وجود ندارد."

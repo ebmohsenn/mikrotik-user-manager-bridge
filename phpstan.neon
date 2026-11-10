@@ -1,0 +1,25 @@
+parameters:
+    level: 5
+    paths:
+        - mikrotik-user-manager-bridge.php
+        - uninstall.php
+        - includes
+        - admin
+        - public
+        - templates
+    tmpDir: build/phpstan
+    reportUnmatchedIgnoredErrors: false
+    excludePaths:
+        analyse:
+            - admin/node_modules
+            - vendor
+    bootstrapFiles:
+        - tests/phpstan/bootstrap.php
+    ignoreErrors:
+        - '#has parameter \$req with generic class WP_REST_Request but does not specify its types: T#'
+        - '#return type has no value type specified in iterable type array#'
+        - '#Method MUMB\\Clients\\BinaryRouterClient::getUserUsageCounters\(\) should return array.*but returns array.*#'
+
+
+includes:
+    - phpstan-baseline.neon

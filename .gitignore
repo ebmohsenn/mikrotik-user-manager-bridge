@@ -1,0 +1,27 @@
+# Dependencies
+/vendor/
+/admin/node_modules/
+
+# Build / tool caches (admin/build is committed on purpose)
+/build/
+/admin/coverage/
+/admin/test-results/
+/admin/playwright-report/
+coverage.txt
+.phpunit.result.cache
+.phpunit.cache/
+.phpcs-cache
+*.log
+
+# Local environment
+.env
+.env.*
+!.env.example
+wp-config-local.php
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

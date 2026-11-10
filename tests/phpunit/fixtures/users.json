@@ -1,0 +1,16 @@
+[
+  {
+    "username": "alice",
+    "group": "staff",
+    "comment": "QA",
+    "shared-users": 1,
+    "disabled": false
+  },
+  {
+    "username": "bob",
+    "group": "guests",
+    "comment": "Trial",
+    "shared-users": 2,
+    "disabled": true
+  }
+]
