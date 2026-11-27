@@ -422,7 +422,12 @@ class MUMB_Sync_Service {
 				}
 				$key = strtolower( $username );
 				if ( ! array_key_exists( $key, $live_map ) ) {
-					$payload = array( 'username' => $username );
+					// The mirror table holds no passwords, and an account without one is open to anyone who
+					// knows the login, so the router account starts with a random password.
+					$payload = array(
+						'username' => $username,
+						'password' => wp_generate_password( 24, false ),
+					);
 					if ( array_key_exists( 'comment', $u ) ) {
 						/** @var mixed $comment_raw */
 						$comment_raw = $u['comment'];
@@ -832,7 +837,7 @@ class MUMB_Sync_Service {
 		// Prefer REST UM if enabled
 		if ( $this->settings->um_rest && ! empty( $this->settings->um_rest_base ) ) {
 			$password = $this->settings->decrypted_password();
-			$client   = new MUMB_UM_REST( $this->settings->um_rest_base, $this->settings->username, $password, $this->settings->ssl, $this->settings->api_timeout );
+			$client   = new MUMB_UM_REST( $this->settings->um_rest_base, $this->settings->username, $password, $this->settings->verify_ssl, $this->settings->api_timeout );
 			$r        = $client->list_users();
 			if ( is_wp_error( $r ) ) {
 				$this->log_sync_error( 'users', $r->get_error_message() );
@@ -1095,7 +1100,7 @@ class MUMB_Sync_Service {
 		$rows = array();
 		if ( $this->settings->um_rest && ! empty( $this->settings->um_rest_base ) ) {
 			$password = $this->settings->decrypted_password();
-			$client   = new MUMB_UM_REST( $this->settings->um_rest_base, $this->settings->username, $password, $this->settings->ssl, $this->settings->api_timeout );
+			$client   = new MUMB_UM_REST( $this->settings->um_rest_base, $this->settings->username, $password, $this->settings->verify_ssl, $this->settings->api_timeout );
 			$r        = $client->list_groups();
 			if ( is_wp_error( $r ) ) {
 				// Fallback to API if available
@@ -1158,7 +1163,7 @@ class MUMB_Sync_Service {
 	public function sync_profiles(): int {
 		if ( $this->settings->um_rest && ! empty( $this->settings->um_rest_base ) ) {
 			$password = $this->settings->decrypted_password();
-			$client   = new MUMB_UM_REST( $this->settings->um_rest_base, $this->settings->username, $password, $this->settings->ssl, $this->settings->api_timeout );
+			$client   = new MUMB_UM_REST( $this->settings->um_rest_base, $this->settings->username, $password, $this->settings->verify_ssl, $this->settings->api_timeout );
 			$r        = $client->list_profiles();
 			if ( is_wp_error( $r ) ) {
 				$this->log_sync_error( 'profiles', $r->get_error_message() );

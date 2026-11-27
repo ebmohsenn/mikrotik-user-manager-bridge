@@ -18,8 +18,10 @@ class MUMB_WP_Users {
 	 *     disabled?: bool|int|string,
 	 *     profile?: string
 	 * } $data
+	 * @param bool   $authorized Set by callers that have already checked the current user may act on this
+	 *                           account (for example an affiliate creating a customer of their own).
 	 */
-	public static function ensure_user( string $username, array $data = array() ): int {
+	public static function ensure_user( string $username, array $data = array(), bool $authorized = false ): int {
 		if ( '' === $username ) {
 			return 0;
 		}
@@ -32,10 +34,11 @@ class MUMB_WP_Users {
 				$role = $role_candidate;
 			}
 		}
+		$has_display_name = isset( $data['display_name'] ) && $data['display_name'] !== '';
 		/** @var array<string, mixed> $payload */
 		$payload = array(
 			'user_login'   => $username,
-			'display_name' => isset( $data['display_name'] ) && $data['display_name'] !== '' ? sanitize_text_field( $data['display_name'] ) : $username,
+			'display_name' => $has_display_name ? sanitize_text_field( $data['display_name'] ) : $username,
 			'role'         => $role,
 		);
 		if ( isset( $data['user_email'] ) && $data['user_email'] !== '' && is_email( $data['user_email'] ) ) {
@@ -45,12 +48,30 @@ class MUMB_WP_Users {
 			$payload['user_pass'] = $data['password'];
 		}
 
+		// Background sync (cron, WP-CLI) has no current user. In a request, changing or creating a WordPress
+		// account takes the matching WordPress capability unless the caller has vouched for it: managing
+		// router users must not be a way to reset somebody else's WordPress password.
+		$in_request = is_user_logged_in() && ! $authorized;
+
 		if ( $user_id ) {
-			$payload['ID'] = $user_id;
-			// Avoid resetting role to blank; WP keeps role if not provided
-			unset( $payload['role'] );
-			wp_update_user( $payload );
+			// Only touch what the caller actually supplied: the role stays, and the display name is not
+			// reset to the login on every sync.
+			$update = array( 'ID' => $user_id );
+			if ( $has_display_name ) {
+				$update['display_name'] = $payload['display_name'];
+			}
+			foreach ( array( 'user_email', 'user_pass' ) as $field ) {
+				if ( isset( $payload[ $field ] ) ) {
+					$update[ $field ] = $payload[ $field ];
+				}
+			}
+			if ( count( $update ) > 1 && ( ! $in_request || current_user_can( 'edit_user', $user_id ) ) ) {
+				wp_update_user( $update );
+			}
 		} else {
+			if ( $in_request && ! current_user_can( 'create_users' ) ) {
+				return 0;
+			}
 			// Ensure required fields
 			if ( ! isset( $payload['user_pass'] ) || $payload['user_pass'] === '' ) {
 				$payload['user_pass'] = wp_generate_password( 12, true );

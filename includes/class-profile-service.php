@@ -172,8 +172,9 @@ class MUMB_Profile_Service {
 		if ( ! $settings->um_rest || '' === $settings->username || '' === $settings->password ) {
 			return new WP_Error( 'mumb_profile_rest_disabled', __( 'Router REST API is not enabled.', 'mikrotik-user-manager-bridge' ) );
 		}
-		$scheme = 443 === (int) ( $server['rest_port'] ?? 443 ) ? 'https' : 'http';
-		$port   = (int) ( $server['rest_port'] ?? 443 );
+		$port = (int) ( $server['rest_port'] ?? 443 );
+		// This request carries the router credentials: plain HTTP only when the server is explicitly on port 80.
+		$scheme = 80 === $port ? 'http' : 'https';
 		$base   = sprintf( '%s://%s:%d', $scheme, $server['hostname'], $port > 0 ? $port : 443 );
 		$rest   = new MUMB_UM_REST( $base, $settings->username, $settings->password, $settings->verify_ssl, $settings->api_timeout );
 		$result = $rest->download_profile_config( $mikrotik_username );

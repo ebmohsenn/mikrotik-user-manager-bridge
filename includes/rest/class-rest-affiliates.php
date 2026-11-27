@@ -12,6 +12,10 @@ use WP_REST_Request;
 use WP_REST_Response;
 use WP_User;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 class Affiliates_Controller {
 
 	public static function register_routes(): void {
@@ -408,9 +412,33 @@ class Affiliates_Controller {
 			);
 		}
 
-		// Use default group if not specified (no validation needed)
 		if ( '' === $group ) {
 			$group = 'default';
+		}
+		if ( ! self::group_allowed( $current_user_id, $group ) ) {
+			return new WP_REST_Response(
+				array(
+					'success' => false,
+					'message' => self::msg( 'You are not allowed to assign this group' ),
+				),
+				403
+			);
+		}
+
+		// An existing WordPress login that this affiliate does not own must not become "theirs" by creating
+		// a router user of the same name.
+		$existing_user = get_user_by( 'login', $username );
+		if ( $existing_user instanceof WP_User && ! current_user_can( 'manage_options' ) ) {
+			$existing_owner = get_user_meta( $existing_user->ID, 'created_by_affiliate', true );
+			if ( ! is_scalar( $existing_owner ) || intval( $existing_owner ) !== $current_user_id ) {
+				return new WP_REST_Response(
+					array(
+						'success' => false,
+						'message' => self::msg( 'This username is not available' ),
+					),
+					409
+				);
+			}
 		}
 
 		/** @var MikroTik_API|null $api */
@@ -441,7 +469,8 @@ class Affiliates_Controller {
 
 			// Create WordPress user and store affiliate relationship
 			if ( class_exists( 'MUMB_WP_Users' ) ) {
-				$wp_user_id = MUMB_WP_Users::ensure_user( $username, array( 'group' => $group ) );
+				// Ownership was checked above, so the affiliate may create this customer account.
+				$wp_user_id = MUMB_WP_Users::ensure_user( $username, array( 'group' => $group ), true );
 
 				// Store affiliate relationship in user meta
 				if ( $wp_user_id ) {
@@ -543,10 +572,21 @@ class Affiliates_Controller {
 					403
 				);
 			}
+			// The lookup above is case- and accent-insensitive. Act on the login that was actually checked.
+			$id = $wp_user->user_login;
 		}
 
 		$group_param = $req->get_param( 'group' );
 		$group       = is_scalar( $group_param ) ? sanitize_text_field( (string) $group_param ) : '';
+		if ( '' !== $group && ! self::group_allowed( $current_user_id, $group ) ) {
+			return new WP_REST_Response(
+				array(
+					'success' => false,
+					'message' => self::msg( 'You are not allowed to assign this group' ),
+				),
+				403
+			);
+		}
 
 		$password_param = $req->get_param( 'password' );
 		$password       = is_scalar( $password_param ) ? (string) $password_param : '';
@@ -678,6 +718,8 @@ class Affiliates_Controller {
 					403
 				);
 			}
+			// The lookup above is case- and accent-insensitive. Act on the login that was actually checked.
+			$id = $wp_user->user_login;
 		}
 
 		/** @var MikroTik_API|null $api */
@@ -1100,6 +1142,30 @@ class Affiliates_Controller {
 				'history' => $filtered_history,
 			),
 		);
+	}
+
+	/**
+	 * Whether this affiliate may put a user in the given group.
+	 *
+	 * Administrators may use any group. An affiliate is limited to the groups stored for them
+	 * (POST /mwp/v1/affiliates `groups`); an affiliate with no stored groups is not restricted.
+	 */
+	private static function group_allowed( int $user_id, string $group ): bool {
+		if ( current_user_can( 'manage_options' ) ) {
+			return true;
+		}
+		$allowed = class_exists( 'MUMB_Affiliates' ) ? MUMB_Affiliates::get_user_groups( $user_id ) : array();
+		/**
+		 * Filter the groups an affiliate may assign. Return an empty array for "no restriction".
+		 *
+		 * @param array<int, string> $allowed
+		 * @param int                $user_id
+		 */
+		$allowed = apply_filters( 'mumb_affiliate_allowed_groups', $allowed, $user_id );
+		if ( ! is_array( $allowed ) || empty( $allowed ) ) {
+			return true;
+		}
+		return in_array( $group, $allowed, true );
 	}
 
 	/**

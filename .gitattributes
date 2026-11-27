@@ -1,0 +1,27 @@
+# Files left out of `git archive` and GitHub's source zip, so a release holds only what the plugin runs.
+/.github export-ignore
+/.gitattributes export-ignore
+/.gitignore export-ignore
+/tests export-ignore
+/docs export-ignore
+/admin/src export-ignore
+/admin/tests export-ignore
+/admin/node_modules export-ignore
+/admin/package.json export-ignore
+/admin/package-lock.json export-ignore
+/admin/.eslintrc.cjs export-ignore
+/admin/jest.config.cjs export-ignore
+/admin/playwright.config.ts export-ignore
+/admin/setupTests.ts export-ignore
+/admin/stylelint.config.cjs export-ignore
+/admin/tsconfig.json export-ignore
+/admin/vite.config.js export-ignore
+/admin/vite.health.config.js export-ignore
+/composer.json export-ignore
+/composer.lock export-ignore
+/phpcs.xml export-ignore
+/phpstan.neon export-ignore
+/phpstan-baseline.neon export-ignore
+/phpunit.xml.dist export-ignore
+/CONTRIBUTING.md export-ignore
+/SECURITY.md export-ignore

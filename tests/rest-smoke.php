@@ -1,4 +1,10 @@
 <?php
+// Command line only: this script loads WordPress and acts as an administrator.
+if ( PHP_SAPI !== 'cli' ) {
+    http_response_code( 404 );
+    exit;
+}
+
 // Usage: WP_LOAD=/path/to/wordpress/wp-load.php php tests/rest-smoke.php
 // (defaults to the WordPress install three levels above the plugin: wp-content/plugins/<plugin>/)
 $bootstrap = getenv( 'WP_LOAD' ) ?: dirname( __DIR__, 4 ) . '/wp-load.php';

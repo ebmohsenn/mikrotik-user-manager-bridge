@@ -440,6 +440,12 @@ if (!function_exists('wp_salt')) {
     }
 }
 
+if (!function_exists('wp_generate_password')) {
+    function wp_generate_password($length = 12, $special_chars = true, $extra_special_chars = false) {
+        return substr(bin2hex(random_bytes(max(1, (int) $length))), 0, max(1, (int) $length));
+    }
+}
+
 if (!function_exists('wp_set_current_user')) {
     function wp_set_current_user($id) {
         global $current_user, $_wp_users;

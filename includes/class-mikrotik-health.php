@@ -93,7 +93,11 @@ class MUMB_Mikrotik_Health {
 
 	public static function ping_server( string $hostname ): array {
 		$hostname = trim( $hostname );
-		if ( '' === $hostname ) {
+		// Only an IP address or a hostname may reach ping/fsockopen; anything else (for example a value
+		// starting with "-", which ping would read as an option) is treated as unreachable.
+		$is_ip       = false !== filter_var( $hostname, FILTER_VALIDATE_IP );
+		$is_hostname = false !== filter_var( $hostname, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME );
+		if ( '' === $hostname || ( ! $is_ip && ! $is_hostname ) ) {
 			return array(
 				'reachable'  => false,
 				'latency_ms' => null,
@@ -149,11 +153,18 @@ class MUMB_Mikrotik_Health {
 		if ( '' === $password ) {
 			return $baseline;
 		}
-		$ssl = $settings->ssl;
-		if ( 8729 === $port ) {
-			$ssl = true;
-		} elseif ( 8728 === $port ) {
-			$ssl = false;
+		// The login below sends the primary router's credentials. Only send them to the primary router:
+		// other registry servers get the socket probe above. Sites whose servers really share one login
+		// can opt in per host with the `mumb_health_authenticate_host` filter.
+		$is_primary = 0 === strcasecmp( trim( $hostname ), trim( $settings->host ) );
+		if ( ! apply_filters( 'mumb_health_authenticate_host', $is_primary, $hostname, $port ) ) {
+			return $baseline;
+		}
+		// Never fall back to cleartext when the connection is configured for TLS: if the registry lists the
+		// plain API port, use the configured TLS port instead.
+		$ssl = $settings->ssl || 8729 === $port;
+		if ( $settings->ssl && 8728 === $port ) {
+			$port = ( $settings->port > 0 && 8728 !== $settings->port ) ? $settings->port : 8729;
 		}
 		$api = null;
 		try {
@@ -207,10 +218,12 @@ class MUMB_Mikrotik_Health {
 				'latency_ms' => null,
 			);
 		}
-		$scheme = 443 === $port ? 'https' : 'http';
+		// Plain HTTP only on port 80; every other port is treated as TLS.
+		$scheme = 80 === $port ? 'http' : 'https';
 		$url    = sprintf( '%s://%s:%d/rest/user-manager', $scheme, $hostname, $port );
+		$verify = class_exists( 'MUMB_Settings' ) ? MUMB_Settings::load()->verify_ssl : true;
 		$start  = microtime( true );
-		$response = wp_remote_get( $url, array( 'timeout' => 3, 'sslverify' => false ) );
+		$response = wp_remote_get( $url, array( 'timeout' => 3, 'sslverify' => $verify ) );
 		if ( is_wp_error( $response ) ) {
 			return array(
 				'reachable' => false,

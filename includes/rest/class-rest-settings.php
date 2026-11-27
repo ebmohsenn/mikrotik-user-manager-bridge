@@ -13,6 +13,10 @@ use MUMB\Services\SettingsService;
 use WP_REST_Request;
 use WP_REST_Response;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 class Settings_Controller {
 
 	public static function register_routes(): void {
@@ -198,7 +202,10 @@ class Settings_Controller {
 		if ( '' !== $password_param ) {
 			$settings->password = $password_param;
 		}
-		$settings->ssl = (bool) $req->get_param( 'ssl' );
+		// Only when sent: a partial update (branding, profile map) must not switch TLS off.
+		if ( null !== $req->get_param( 'ssl' ) ) {
+			$settings->ssl = (bool) $req->get_param( 'ssl' );
+		}
 		if ( null !== $req->get_param( 'verify_ssl' ) ) {
 			$settings->verify_ssl = (bool) $req->get_param( 'verify_ssl' );
 		}

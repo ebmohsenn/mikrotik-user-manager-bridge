@@ -2,6 +2,10 @@
 
 use MUMB\Services\SettingsService;
 
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
 $state = SettingsService::get_connection_state();
 $connected = ! empty( $state['connected'] );
 $last_error = '';

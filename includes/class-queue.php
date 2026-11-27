@@ -25,6 +25,7 @@ class MUMB_Queue {
 	 * @param array<string, mixed> $payload
 	 */
 	private static function notify_failure( string $key, array $payload, string $error, int $attempts ): void {
+		$payload = self::redact_payload( $payload );
 		do_action( 'mumb_queue_job_failed', $key, $payload, $error, $attempts );
 		/** @var mixed $recipient */
 		$recipient = apply_filters( 'mumb_queue_failure_email', get_option( 'admin_email' ) );
@@ -52,8 +53,9 @@ class MUMB_Queue {
 	 * @param array{type:string, user?:string, profile?:string, data?:array<string, mixed>} $payload
 	 */
 	public static function enqueue( string $key, array $payload ): string {
-		$q   = SettingsService::get_job_queue();
-		$now = time();
+		$payload = self::seal_payload( $payload );
+		$q       = SettingsService::get_job_queue();
+		$now     = time();
 		if ( isset( $q[ $key ] ) && is_array( $q[ $key ] ) ) {
 			$existing  = $q[ $key ];
 			$attempts  = isset( $existing['attempts'] ) ? (int) $existing['attempts'] : 0;
@@ -164,13 +166,8 @@ class MUMB_Queue {
 			}
 			$payload = isset( $job['payload'] ) && is_array( $job['payload'] ) ? $job['payload'] : array();
 			$type    = isset( $payload['type'] ) ? (string) $payload['type'] : '';
-
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				$payload_json = wp_json_encode( $payload );
-				if ( $payload_json !== false ) {
-					// Debug: error_log( '[MUMB_Queue] Job ' . $key . ' type: ' . $type . ', payload: ' . $payload_json );
-				}
-			}
+			// Secrets are decrypted for the job handlers only; $payload stays sealed for history and notifications.
+			$run_payload = self::flatten_payload( self::unseal_payload( $payload ) );
 
 			try {
 				$result = array(
@@ -179,16 +176,16 @@ class MUMB_Queue {
 				);
 				switch ( $type ) {
 					case 'assign_profile':
-						$result = self::job_assign_profile( $client, $payload );
+						$result = self::job_assign_profile( $client, $run_payload );
 						break;
 					case 'create_user':
-						$result = self::job_create_user( $client, $payload );
+						$result = self::job_create_user( $client, $run_payload );
 						break;
 					case 'update_user':
-						$result = self::job_update_user( $client, $payload );
+						$result = self::job_update_user( $client, $run_payload );
 						break;
 					case 'disable_user':
-						$result = self::job_disable_user( $client, $payload );
+						$result = self::job_disable_user( $client, $run_payload );
 						break;
 					default:
 						$result = array(
@@ -283,6 +280,9 @@ class MUMB_Queue {
 					return array();
 				}
 				$row['time'] = isset( $row['time'] ) && is_scalar( $row['time'] ) ? (string) $row['time'] : current_time( 'mysql' );
+				if ( isset( $row['payload'] ) && is_array( $row['payload'] ) ) {
+					$row['payload'] = self::redact_payload( $row['payload'] );
+				}
 				return $row;
 			},
 			$history
@@ -333,7 +333,7 @@ class MUMB_Queue {
 			'status'   => $status,
 			'message'  => $message,
 			'attempts' => $attempts,
-			'payload'  => $payload,
+			'payload'  => self::redact_payload( $payload ),
 			'time'     => current_time( 'mysql' ),
 		);
 		array_unshift( $history, $entry );
@@ -360,7 +360,7 @@ class MUMB_Queue {
 			$out[]   = array(
 				'key'        => $key,
 				'type'       => isset( $payload['type'] ) && is_scalar( $payload['type'] ) ? (string) $payload['type'] : '',
-				'payload'    => $payload,
+				'payload'    => self::redact_payload( $payload ),
 				'attempts'   => isset( $job['attempts'] ) && is_numeric( $job['attempts'] ) ? (int) $job['attempts'] : 0,
 				'status'     => isset( $job['status'] ) && is_scalar( $job['status'] ) ? (string) $job['status'] : 'pending',
 				'next_run'   => isset( $job['next_run'] ) && is_numeric( $job['next_run'] ) ? (int) $job['next_run'] : time(),
@@ -370,6 +370,147 @@ class MUMB_Queue {
 			);
 		}
 		return $out;
+	}
+
+	/**
+	 * Replace plaintext passwords with an encrypted copy before a payload is stored.
+	 *
+	 * @param array<string, mixed> $payload
+	 * @return array<string, mixed>
+	 */
+	private static function seal_payload( array $payload ): array {
+		$payload = self::seal_level( $payload );
+		if ( isset( $payload['data'] ) && is_array( $payload['data'] ) ) {
+			$payload['data'] = self::seal_level( $payload['data'] );
+		}
+		return $payload;
+	}
+
+	/**
+	 * @param array<array-key, mixed> $level
+	 * @return array<array-key, mixed>
+	 */
+	private static function seal_level( array $level ): array {
+		if ( ! array_key_exists( 'password', $level ) ) {
+			return $level;
+		}
+		$plain = is_scalar( $level['password'] ) ? (string) $level['password'] : '';
+		unset( $level['password'] );
+		if ( '' === $plain ) {
+			return $level;
+		}
+		$sealed = MUMB_Security::encrypt( $plain );
+		// encrypt() hands the input back when OpenSSL fails. Drop the password rather than store it in clear.
+		if ( $sealed !== $plain && 0 === strncmp( $sealed, 'enc:', 4 ) ) {
+			$level['password_enc'] = $sealed;
+		}
+		return $level;
+	}
+
+	/**
+	 * Decrypt sealed passwords for a job handler. The result must never be stored or returned.
+	 *
+	 * @param array<string, mixed> $payload
+	 * @return array<string, mixed>
+	 */
+	private static function unseal_payload( array $payload ): array {
+		$payload = self::unseal_level( $payload );
+		if ( isset( $payload['data'] ) && is_array( $payload['data'] ) ) {
+			$payload['data'] = self::unseal_level( $payload['data'] );
+		}
+		return $payload;
+	}
+
+	/**
+	 * @param array<array-key, mixed> $level
+	 * @return array<array-key, mixed>
+	 */
+	private static function unseal_level( array $level ): array {
+		if ( ! array_key_exists( 'password_enc', $level ) ) {
+			return $level;
+		}
+		$sealed = is_scalar( $level['password_enc'] ) ? (string) $level['password_enc'] : '';
+		unset( $level['password_enc'] );
+		$plain = '' !== $sealed ? MUMB_Security::decrypt( $sealed ) : '';
+		if ( '' !== $plain ) {
+			$level['password'] = $plain;
+		}
+		return $level;
+	}
+
+	/**
+	 * Strip every form of a password from a payload that is about to be stored in history or shown.
+	 *
+	 * @param array<string, mixed> $payload
+	 * @return array<string, mixed>
+	 */
+	public static function redact_payload( array $payload ): array {
+		unset( $payload['password'], $payload['password_enc'] );
+		if ( isset( $payload['data'] ) && is_array( $payload['data'] ) ) {
+			unset( $payload['data']['password'], $payload['data']['password_enc'] );
+		}
+		return $payload;
+	}
+
+	/**
+	 * Jobs are enqueued in two shapes: fields at the top level, or under `data` with the login in `user`.
+	 * Give the handlers one shape: top-level keys win, `data` fills the gaps, and `username` is always set.
+	 *
+	 * @param array<string, mixed> $payload
+	 * @return array<string, mixed>
+	 */
+	private static function flatten_payload( array $payload ): array {
+		if ( isset( $payload['data'] ) && is_array( $payload['data'] ) ) {
+			foreach ( $payload['data'] as $data_key => $value ) {
+				if ( is_string( $data_key ) && ! array_key_exists( $data_key, $payload ) ) {
+					/** @psalm-suppress MixedAssignment */
+					$payload[ $data_key ] = $value;
+				}
+			}
+		}
+		$has_username = isset( $payload['username'] ) && is_scalar( $payload['username'] ) && '' !== (string) $payload['username'];
+		if ( ! $has_username && isset( $payload['user'] ) && is_scalar( $payload['user'] ) ) {
+			$payload['username'] = (string) $payload['user'];
+		}
+		return $payload;
+	}
+
+	/**
+	 * One-time clean-up for sites upgrading from 2.1.1 or earlier, where queued jobs and the job
+	 * history could hold passwords in clear.
+	 */
+	public static function scrub_stored_secrets(): void {
+		$history = SettingsService::get_job_history();
+		$changed = false;
+		foreach ( $history as $index => $row ) {
+			if ( is_array( $row ) && isset( $row['payload'] ) && is_array( $row['payload'] ) ) {
+				$clean = self::redact_payload( $row['payload'] );
+				if ( $clean !== $row['payload'] ) {
+					$row['payload']    = $clean;
+					$history[ $index ] = $row;
+					$changed           = true;
+				}
+			}
+		}
+		if ( $changed ) {
+			SettingsService::set_job_history( $history );
+		}
+
+		$queue   = SettingsService::get_job_queue();
+		$changed = false;
+		foreach ( $queue as $key => $job ) {
+			if ( is_array( $job ) && isset( $job['payload'] ) && is_array( $job['payload'] ) ) {
+				$sealed = self::seal_payload( $job['payload'] );
+				if ( $sealed !== $job['payload'] ) {
+					$job['payload'] = $sealed;
+					$queue[ $key ]  = $job;
+					$changed        = true;
+				}
+			}
+		}
+		if ( $changed ) {
+			SettingsService::set_job_queue( $queue );
+		}
 	}
 
 	/**
@@ -438,6 +579,11 @@ class MUMB_Queue {
 		}
 		if ( isset( $payload['profile'] ) && $payload['profile'] !== '' ) {
 			$data['group'] = is_scalar( $payload['profile'] ) ? (string) $payload['profile'] : '';
+		}
+		if ( ! isset( $data['password'] ) || '' === $data['password'] ) {
+			// A router account without a password can be used by anyone who knows the login. The account
+			// owner replaces this random one by changing or resetting their WordPress password.
+			$data['password'] = wp_generate_password( 24, false );
 		}
 
 		$res = $client->createUser( $data );
@@ -716,7 +862,7 @@ class MUMB_Queue {
 	}
 
 	/**
-	 * @return array{host:string, port:int, username:string, password:string, ssl:bool, api_timeout:int, retry_max?:int, retry_base_ms?:int, retry_jitter_ms?:int, um_rest?:bool, um_rest_base?:string}|array{}
+	 * @return array{host:string, port:int, username:string, password:string, ssl:bool, verify_ssl:bool, api_timeout:int, retry_max?:int, retry_base_ms?:int, retry_jitter_ms?:int, um_rest?:bool, um_rest_base?:string}|array{}
 	 */
 	private static function build_opts( MUMB_Settings $settings ): array {
 		$host = $settings->host;
@@ -736,6 +882,7 @@ class MUMB_Queue {
 			'username'    => $user,
 			'password'    => $pass,
 			'ssl'         => $ssl,
+			'verify_ssl'  => $settings->verify_ssl,
 			'api_timeout' => isset( $settings->api_timeout ) ? $settings->api_timeout : 8,
 		);
 		foreach ( array( 'retry_max', 'retry_base_ms', 'retry_jitter_ms' ) as $key ) {

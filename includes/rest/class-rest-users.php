@@ -11,6 +11,10 @@ use WP_REST_Request;
 use WP_REST_Response;
 use WP_User;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 class Users_Controller {
 
 	private const CACHE_KEY = 'mwp_rest_users';

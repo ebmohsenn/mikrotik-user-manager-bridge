@@ -133,12 +133,13 @@ if ( ! class_exists( 'MikroTik_API', false ) && file_exists( __DIR__ . '/include
 
 if ( ! class_exists( 'MikroTik_User_Manager_Bridge', false ) ) {
 	class MikroTik_User_Manager_Bridge {
-		const DB_VERSION = '2.3.0';
+		const DB_VERSION = '2.3.1';
 		public static function init() : void {
 			add_action( 'plugins_loaded', function(){
 				load_plugin_textdomain( 'mikrotik-user-manager-bridge', false, dirname( plugin_basename( MUMB_FILE ) ) . '/languages/' );
 			} );
 			register_activation_hook( MUMB_FILE, [ __CLASS__, 'activate' ] );
+			register_deactivation_hook( MUMB_FILE, [ __CLASS__, 'deactivate' ] );
 			add_action( 'init', [ __CLASS__, 'register_cron' ] );
 			add_action( 'mumb_sync_cron', [ __CLASS__, 'run_sync' ] );
 			add_action( 'mumb_queue_cron', [ __CLASS__, 'run_queue' ] );
@@ -277,9 +278,23 @@ if ( ! class_exists( 'MikroTik_User_Manager_Bridge', false ) ) {
 			self::ensure_affiliate_role();
 		}
 
+		/**
+		 * Stop the scheduled jobs. They log in to the router every minute, which must not go on
+		 * while the plugin is switched off. Activation (or the next admin page load) schedules them again.
+		 */
+		public static function deactivate() : void {
+			wp_clear_scheduled_hook( 'mumb_sync_cron' );
+			wp_clear_scheduled_hook( 'mumb_queue_cron' );
+			wp_clear_scheduled_hook( MUMB_Mikrotik_Health::CRON_HOOK );
+		}
+
 		public static function maybe_upgrade_schema() : void {
 			$ver = get_option( 'mumb_db_version', '' );
 			if ( $ver === self::DB_VERSION ) { return; }
+			// 2.3.1: versions up to 2.1.1 could leave passwords in the job queue and job history options.
+			if ( class_exists( 'MUMB_Queue' ) ) {
+				MUMB_Queue::scrub_stored_secrets();
+			}
 			global $wpdb; $p = $wpdb->prefix; $charset = $wpdb->get_charset_collate();
 			require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		dbDelta( 'CREATE TABLE ' . $p . "mikrotik_users (

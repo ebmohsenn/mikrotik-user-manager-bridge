@@ -170,7 +170,7 @@ class MUMB_Woo_Integration {
 
 	public static function handle_password_reset( WP_User $user, string $new_password ): void {
 		$username = $user->user_login;
-		if ( '' === $username ) {
+		if ( '' === $username || ! self::has_router_account( $username ) ) {
 			return;
 		}
 		self::enqueue_job( 'update_user', $username, '', array( 'password' => $new_password ) );
@@ -191,10 +191,25 @@ class MUMB_Woo_Integration {
 			return;
 		}
 		$username = $user->user_login;
-		if ( '' === $username ) {
+		if ( '' === $username || ! self::has_router_account( $username ) ) {
 			return;
 		}
 		self::enqueue_job( 'update_user', $username, '', array( 'password' => $pass1 ) );
+	}
+
+	/**
+	 * Whether the mirror table knows a router user with this login. Password changes of WordPress
+	 * accounts that have no router user (administrators, editors) are none of the router's business
+	 * and must not be queued.
+	 */
+	protected static function has_router_account( string $username ): bool {
+		global $wpdb;
+		if ( ! ( $wpdb instanceof wpdb ) ) {
+			return false;
+		}
+		/** @var string|null $query */
+		$query = $wpdb->prepare( 'SELECT COUNT(*) FROM ' . $wpdb->prefix . 'mikrotik_users WHERE username=%s', $username ); // @phpstan-ignore-line
+		return (int) $wpdb->get_var( $query ) > 0;
 	}
 
 	/**

@@ -1264,20 +1264,14 @@ class MWP_REST {
 					}
 					$where_sql = $where ? ( 'WHERE ' . implode( ' AND ', $where ) ) : '';
 					$rows = array();
-					if ( ! empty( $params ) ) {
-						/** @var string|false $base_sql */
-						$base_sql = $wpdb->prepare( 'SELECT id,time,level,action,message FROM %s', $logs_table );
-						if ( is_string( $base_sql ) ) {
-							$sql = $base_sql . ' ' . $where_sql . ' ORDER BY time DESC LIMIT 200';
-							$sql = $wpdb->prepare( $sql, $params );
-							if ( is_string( $sql ) ) {
-								$rows = self::normalize_rows( $wpdb->get_results( $sql, ARRAY_A ) );
-							}
-						}
-					} else {
-						/** @var string|false $sql_rows */
-						$sql_rows = $wpdb->prepare( 'SELECT id,time,level,action,message FROM %s %s ORDER BY time DESC LIMIT 200', $logs_table, $where_sql );
-						$rows     = is_string( $sql_rows ) ? self::normalize_rows( $wpdb->get_results( $sql_rows, ARRAY_A ) ) : array();
+					// %i is the identifier placeholder; $where_sql holds only fixed column comparisons with %s placeholders.
+					/** @var string|false $sql_rows */
+					$sql_rows = $wpdb->prepare(
+						'SELECT id,time,level,action,message FROM %i ' . $where_sql . ' ORDER BY time DESC LIMIT 200',
+						array_merge( array( $logs_table ), $params )
+					);
+					if ( is_string( $sql_rows ) ) {
+						$rows = self::normalize_rows( $wpdb->get_results( $sql_rows, ARRAY_A ) );
 					}
 						return array(
 							'success' => true,
@@ -1303,6 +1297,7 @@ class MWP_REST {
 	 *     username: string,
 	 *     password: string,
 	 *     ssl: bool,
+	 *     verify_ssl: bool,
 	 *     api_timeout: int,
 	 *     retry_max?: int,
 	 *     retry_base_ms?: int,
@@ -1330,6 +1325,7 @@ class MWP_REST {
 			'username'    => $username,
 			'password'    => $password,
 			'ssl'         => $settings->ssl,
+			'verify_ssl'  => $settings->verify_ssl,
 			'api_timeout' => $settings->api_timeout,
 		);
 		$payload['retry_max']       = $settings->retry_max;
@@ -1606,6 +1602,8 @@ class MWP_REST {
 		if ( is_array( $rows ) ) {
 			foreach ( $rows as $row ) {
 				if ( is_array( $row ) ) {
+					// The RADIUS shared secret is write-only: it can be set, never read back.
+					unset( $row['shared-secret'], $row['shared_secret'], $row['secret'], $row['password'] );
 					$data[] = $row;
 				}
 			}
@@ -1936,6 +1934,17 @@ class MWP_REST {
 				401
 			);
 		}
+		// Each call writes to the router and re-syncs every user, so keep it rare. Keyed per account
+		// (and, inside throttle(), per address).
+		if ( self::throttle( 'self_group:' . get_current_user_id(), 5, 60 ) ) {
+			return new WP_REST_Response(
+				array(
+					'success' => false,
+					'message' => 'Rate limited',
+				),
+				429
+			);
+		}
 			/** @var mixed $group_param */
 			$group_param = $req->get_param( 'group' );
 		$group           = sanitize_text_field( is_scalar( $group_param ) ? (string) $group_param : '' );
@@ -1982,6 +1991,26 @@ class MWP_REST {
 				400
 			);
 		}
+		/**
+		 * Filter the groups a user may move their own router account to.
+		 *
+		 * Return an array of group names to restrict the choice (for example to the plan the customer
+		 * paid for). The default, null, keeps the historical behaviour: any existing group.
+		 *
+		 * @param array<int, string>|null $allowed
+		 * @param WP_User                 $user
+		 * @param string                  $group Requested group.
+		 */
+		$allowed_groups = apply_filters( 'mumb_user_allowed_groups', null, $user, $group );
+		if ( is_array( $allowed_groups ) && ! in_array( $group, $allowed_groups, true ) ) {
+			return new WP_REST_Response(
+				array(
+					'success' => false,
+					'message' => 'You are not allowed to switch to this group',
+				),
+				403
+			);
+		}
 		$api = self::build_api();
 		if ( ! $api ) {
 			return new WP_REST_Response(
@@ -2004,17 +2033,8 @@ class MWP_REST {
 					500
 				);
 			}
-			$wp_user_id = 0;
 			if ( class_exists( 'MUMB_WP_Users' ) ) {
-				$wp_user_id = MUMB_WP_Users::ensure_user( $username, array( 'group' => $group ) );
-			}
-			if ( $wp_user_id > 0 ) {
-				update_user_meta( $wp_user_id, 'mumb_affiliate_owner', get_current_user_id() );
-			} else {
-				$wp_user = get_user_by( 'login', $username );
-				if ( $wp_user instanceof WP_User ) {
-					update_user_meta( $wp_user->ID, 'mumb_affiliate_owner', get_current_user_id() );
-				}
+				MUMB_WP_Users::ensure_user( $username, array( 'group' => $group ) );
 			}
 			( new MUMB_Sync_Service() )->sync_users();
 			Users_Controller::flush_cache();
@@ -2053,6 +2073,17 @@ class MWP_REST {
 					'message' => 'Unauthorized',
 				),
 				401
+			);
+		}
+
+		// Limits guessing of current_password from a hijacked session.
+		if ( self::throttle( 'self_password:' . get_current_user_id(), 5, 300 ) ) {
+			return new WP_REST_Response(
+				array(
+					'success' => false,
+					'message' => 'Rate limited',
+				),
+				429
 			);
 		}
 
@@ -2465,6 +2496,15 @@ class MWP_REST {
 					400
 				);
 			}
+			if ( ! current_user_can( 'create_users' ) ) {
+				return new WP_REST_Response(
+					array(
+						'success' => false,
+						'message' => 'You are not allowed to create WordPress users.',
+					),
+					403
+				);
+			}
 			$password = wp_generate_password( 16, true, true );
 			$user_id  = wp_insert_user(
 				array(
@@ -2498,10 +2538,6 @@ class MWP_REST {
 			);
 		}
 
-		if ( ! in_array( 'affiliate_partner', $user->roles, true ) ) {
-			$user->add_role( 'affiliate_partner' );
-		}
-
 		// Update user profile fields if provided
 		$update_data   = array( 'ID' => $user->ID );
 		$should_update = false;
@@ -2517,6 +2553,23 @@ class MWP_REST {
 				$update_data['display_name'] = $sanitized_name;
 				$should_update               = true;
 			}
+		}
+
+		// Changing another account's role, email or name takes the right to edit that account. Without this,
+		// pointing `user_id` at an administrator and sending a new email was a path to a password reset.
+		$needs_role = ! in_array( 'affiliate_partner', $user->roles, true );
+		if ( null === $generated_password && ( $needs_role || $should_update ) && ! current_user_can( 'edit_user', $user->ID ) ) {
+			return new WP_REST_Response(
+				array(
+					'success' => false,
+					'message' => 'You are not allowed to edit this WordPress user.',
+				),
+				403
+			);
+		}
+
+		if ( $needs_role ) {
+			$user->add_role( 'affiliate_partner' );
 		}
 
 		if ( $should_update ) {

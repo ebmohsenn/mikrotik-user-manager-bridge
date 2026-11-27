@@ -14,6 +14,10 @@ class MUMB_Dashboard_Widgets {
 	}
 
 	public static function register(): void {
+		// These widgets show the router host, the API user and affiliate figures.
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
 		$brand = MUMB_Branding::name();
 		wp_add_dashboard_widget(
 			'mumb_affiliate_snapshot',
