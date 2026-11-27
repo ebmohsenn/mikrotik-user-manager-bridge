@@ -39,10 +39,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 use MUMB\Services\SettingsService;
 
-define( 'MUMB_VERSION', '2.1.0' );
-define( 'MUMB_FILE', __FILE__ );
-define( 'MUMB_DIR', plugin_dir_path( __FILE__ ) );
-define( 'MUMB_URL', plugin_dir_url( __FILE__ ) );
+defined( 'MUMB_VERSION' ) || define( 'MUMB_VERSION', '2.1.0' );
+defined( 'MUMB_FILE' ) || define( 'MUMB_FILE', __FILE__ );
+defined( 'MUMB_DIR' ) || define( 'MUMB_DIR', plugin_dir_path( __FILE__ ) );
+defined( 'MUMB_URL' ) || define( 'MUMB_URL', plugin_dir_url( __FILE__ ) );
 
 // Optional Composer autoloader (only present when the plugin is installed from source with `composer install`).
 $autoload = __DIR__ . '/vendor/autoload.php';

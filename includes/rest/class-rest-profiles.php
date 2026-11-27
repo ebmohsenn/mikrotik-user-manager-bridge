@@ -129,7 +129,7 @@ class Profiles_Controller {
 		}
 
 		/** @var string|false $sql */
-		$sql = $wpdb->prepare( 'SELECT name, validity, updated_at FROM `%s` ORDER BY name ASC', $p . 'mikrotik_profiles' );
+		$sql = $wpdb->prepare( 'SELECT name, validity, updated_at FROM %i ORDER BY name ASC', $p . 'mikrotik_profiles' );
 		/** @var array<int, array<string, mixed>>|null $rows */
 		$rows = null;
 		if ( is_string( $sql ) ) {

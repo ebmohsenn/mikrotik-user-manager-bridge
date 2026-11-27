@@ -563,7 +563,7 @@ class Settings_Controller {
 		/** @var string $p */
 		$p = $wpdb->prefix;
 		/** @var string|false $sql */
-		$sql = $wpdb->prepare( 'SELECT time, level, action, message FROM `%s` WHERE level IN (%s,%s) ORDER BY time DESC LIMIT 5', $p . 'mikrotik_logs', 'error', 'warning' );
+		$sql = $wpdb->prepare( 'SELECT time, level, action, message FROM %i WHERE level IN (%s,%s) ORDER BY time DESC LIMIT 5', $p . 'mikrotik_logs', 'error', 'warning' );
 		/** @var mixed $logs */
 		$logs = null;
 		if ( is_string( $sql ) ) {

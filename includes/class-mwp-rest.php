@@ -406,7 +406,7 @@ class MWP_REST {
 							MUMB_Logger::log( 'warning', 'rest_sync_diff', $action, $context );
 						};
 						/** @var string|false $prepared_sql */
-						$prepared_sql = $wpdb->prepare( 'SELECT name FROM `%s`', $groups_table );
+						$prepared_sql = $wpdb->prepare( 'SELECT name FROM %i', $groups_table );
 						/** @var array<string>|null $db_groups_raw */
 						$db_groups_raw = is_string( $prepared_sql ) ? $wpdb->get_col( $prepared_sql ) : null;
 						$db_groups     = self::sanitize_string_list( $db_groups_raw );
@@ -443,7 +443,7 @@ class MWP_REST {
 						}
 
 						/** @var string|false $prepared_sql */
-						$prepared_sql = $wpdb->prepare( 'SELECT name FROM `%s`', $profiles_table );
+						$prepared_sql = $wpdb->prepare( 'SELECT name FROM %i', $profiles_table );
 						/** @var array<string>|null $db_profiles_raw */
 						$db_profiles_raw = is_string( $prepared_sql ) ? $wpdb->get_col( $prepared_sql ) : null;
 						$db_profiles     = self::sanitize_string_list( $db_profiles_raw );
@@ -479,13 +479,13 @@ class MWP_REST {
 							}
 						}
 						/** @var string|false $sql_users */
-						$sql_users = $wpdb->prepare( 'SELECT username, comment, profile FROM `%s`', $users_table );
+						$sql_users = $wpdb->prepare( 'SELECT username, comment, profile FROM %i', $users_table );
 						/** @var array<array<string,mixed>>|null $db_users_raw */
 						$db_users_raw = is_string( $sql_users ) ? $wpdb->get_results( $sql_users, ARRAY_A ) : array();
 						$db_users     = is_array( $db_users_raw ) ? $db_users_raw : array();
 						// For delete diff: build lowercase username sets for quick membership tests
 						/** @var string|false $sql_usernames */
-						$sql_usernames = $wpdb->prepare( 'SELECT username FROM `%s`', $users_table );
+						$sql_usernames = $wpdb->prepare( 'SELECT username FROM %i', $users_table );
 						/** @var array<string>|null $db_usernames_raw */
 						$db_usernames_raw = is_string( $sql_usernames ) ? $wpdb->get_col( $sql_usernames ) : array();
 						$db_usernames     = array_unique( array_map( 'strtolower', self::sanitize_string_list( $db_usernames_raw ) ) );
@@ -554,7 +554,7 @@ class MWP_REST {
 							}
 						}
 						/** @var string|false $sql_pairs */
-						$sql_pairs = $wpdb->prepare( 'SELECT username, profile FROM `%s`', $user_profiles_table );
+						$sql_pairs = $wpdb->prepare( 'SELECT username, profile FROM %i', $user_profiles_table );
 						/** @var array<array<string,mixed>>|null $db_pairs_raw */
 						$db_pairs_raw = is_string( $sql_pairs ) ? $wpdb->get_results( $sql_pairs, ARRAY_A ) : array();
 						$db_pairs     = is_array( $db_pairs_raw ) ? $db_pairs_raw : array();
@@ -623,7 +623,7 @@ class MWP_REST {
 						}
 						// Distinct usernames present in user_profiles (lowercased)
 						/** @var string|false $prepared_sql */
-						$prepared_sql = $wpdb->prepare( 'SELECT DISTINCT username FROM `%s`', $user_profiles_table );
+						$prepared_sql = $wpdb->prepare( 'SELECT DISTINCT username FROM %i', $user_profiles_table );
 						/** @var array<string>|null $db_up_raw */
 						$db_up_raw = is_string( $prepared_sql ) ? $wpdb->get_col( $prepared_sql ) : null;
 						$db_up     = array_unique( array_map( 'strtolower', self::sanitize_string_list( $db_up_raw ) ) );
@@ -1002,7 +1002,7 @@ class MWP_REST {
 					}
 					$user_profiles_table = $p . 'mikrotik_user_profiles';
 					/** @var string|false $sql_profiles */
-					$sql_profiles = $wpdb->prepare( 'SELECT username, profile, expires_at, updated_at FROM `%s` ORDER BY updated_at DESC LIMIT 500', $user_profiles_table );
+					$sql_profiles = $wpdb->prepare( 'SELECT username, profile, expires_at, updated_at FROM %i ORDER BY updated_at DESC LIMIT 500', $user_profiles_table );
 					$rows_raw     = is_string( $sql_profiles ) ? $wpdb->get_results( $sql_profiles, ARRAY_A ) : array();
 					if ( ! is_array( $rows_raw ) ) {
 						$rows_raw = array();

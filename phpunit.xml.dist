@@ -9,14 +9,12 @@
             <directory>tests/phpunit/tests</directory>
         </testsuite>
     </testsuites>
-    <coverage includeUncoveredFiles="true">
+    <!-- Coverage is opt-in: pass the coverage-text option to phpunit (needs Xdebug or PCOV). -->
+    <source>
         <include>
             <directory suffix=".php">includes</directory>
         </include>
-        <report>
-            <text outputFile="coverage.txt" showOnlySummary="true"/>
-        </report>
-    </coverage>
+    </source>
     <php>
         <const name="MWP_TEST_SUITE" value="1"/>
     </php>

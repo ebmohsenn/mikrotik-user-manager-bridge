@@ -649,7 +649,8 @@ if (!class_exists('wpdb')) {
                 },
                 $args
             );
-            return vsprintf(str_replace('%s', "'%s'", $query), $escaped);
+            // %i is an identifier placeholder (WordPress 6.2+); quote it with backticks.
+            return vsprintf(str_replace(array('%s', '%i'), array("'%s'", '`%s`'), $query), $escaped);
         }
 
         public function get_row($query, $output = ARRAY_A) {
