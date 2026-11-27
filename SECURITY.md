@@ -3,7 +3,7 @@
 ## Reporting a vulnerability
 
 Please report security problems privately, not in a public issue: use
-[**Report a vulnerability**](https://github.com/ebmohsenn/mikrotik-user-manager-bridge/security/advisories/new)
+[**Report a vulnerability**](https://github.com/Ebmohsennn/mikrotik-user-manager-bridge/security/advisories/new)
 on this repository's **Security** tab.
 
 Include the plugin, WordPress, PHP and RouterOS versions, the steps that reproduce the problem and

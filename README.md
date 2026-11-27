@@ -1,6 +1,6 @@
 # MikroTik User Manager Bridge
 
-[![CI](https://github.com/ebmohsenn/mikrotik-user-manager-bridge/actions/workflows/ci.yml/badge.svg)](https://github.com/ebmohsenn/mikrotik-user-manager-bridge/actions/workflows/ci.yml)
+[![CI](https://github.com/Ebmohsennn/mikrotik-user-manager-bridge/actions/workflows/ci.yml/badge.svg)](https://github.com/Ebmohsennn/mikrotik-user-manager-bridge/actions/workflows/ci.yml)
 [![License: GPL v2 or later](https://img.shields.io/badge/license-GPL--2.0--or--later-blue.svg)](LICENSE)
 
 A WordPress plugin that connects a MikroTik RouterOS **User Manager** to WordPress.
@@ -52,14 +52,14 @@ dashboard inside wp-admin to manage users, profiles, routers and sync jobs.
 ### From a release zip
 
 1. Download the latest release zip from the
-   [Releases page](https://github.com/ebmohsenn/mikrotik-user-manager-bridge/releases).
+   [Releases page](https://github.com/Ebmohsennn/mikrotik-user-manager-bridge/releases).
 2. In wp-admin go to **Plugins → Add New → Upload Plugin**, upload the zip and activate it.
 
 ### From source
 
 ```bash
 cd wp-content/plugins
-git clone https://github.com/ebmohsenn/mikrotik-user-manager-bridge.git
+git clone https://github.com/Ebmohsennn/mikrotik-user-manager-bridge.git
 ```
 
 Activate **MikroTik User Manager Bridge** in **Plugins**. The compiled admin assets are
@@ -158,7 +158,7 @@ Two REST tests are skipped unless the WordPress core test library is available (
 - **Profile downloads** use random, single-use tokens that expire and are bound to the user
   they were issued to.
 - **Reporting vulnerabilities**: please do not open a public issue. Use GitHub's
-  [*Report a vulnerability*](https://github.com/ebmohsenn/mikrotik-user-manager-bridge/security/advisories/new)
+  [*Report a vulnerability*](https://github.com/Ebmohsennn/mikrotik-user-manager-bridge/security/advisories/new)
   (private security advisory) on this repository instead.
 
 ## Contributing

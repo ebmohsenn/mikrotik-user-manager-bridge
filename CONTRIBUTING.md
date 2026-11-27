@@ -12,7 +12,7 @@ usernames and passwords before you post.** Report security problems privately th
 ## Development setup
 
 ```bash
-git clone https://github.com/ebmohsenn/mikrotik-user-manager-bridge.git
+git clone https://github.com/Ebmohsennn/mikrotik-user-manager-bridge.git
 cd mikrotik-user-manager-bridge
 composer install
 cd admin && npm ci

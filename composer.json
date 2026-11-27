@@ -1,12 +1,12 @@
 {
-    "name": "ebmohsenn/mikrotik-user-manager-bridge",
+    "name": "ebmohsennn/mikrotik-user-manager-bridge",
     "description": "WordPress plugin that bridges MikroTik RouterOS User Manager with WordPress and WooCommerce.",
     "type": "wordpress-plugin",
     "license": "GPL-2.0-or-later",
-    "homepage": "https://github.com/ebmohsenn/mikrotik-user-manager-bridge",
+    "homepage": "https://github.com/Ebmohsennn/mikrotik-user-manager-bridge",
     "support": {
-        "issues": "https://github.com/ebmohsenn/mikrotik-user-manager-bridge/issues",
-        "source": "https://github.com/ebmohsenn/mikrotik-user-manager-bridge"
+        "issues": "https://github.com/Ebmohsennn/mikrotik-user-manager-bridge/issues",
+        "source": "https://github.com/Ebmohsennn/mikrotik-user-manager-bridge"
     },
     "authors": [
         {
