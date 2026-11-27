@@ -1,6 +1,7 @@
 # MikroTik User Manager Bridge
 
-[![License: GPL v2 or later](https://img.shields.io/badge/license-GPL--2.0--or--later-blue.svg)](https://www.gnu.org/licenses/gpl-2.0.html)
+[![CI](https://github.com/mohsenebrahimizadeh-ai/mikrotik-user-manager-bridge/actions/workflows/ci.yml/badge.svg)](https://github.com/mohsenebrahimizadeh-ai/mikrotik-user-manager-bridge/actions/workflows/ci.yml)
+[![License: GPL v2 or later](https://img.shields.io/badge/license-GPL--2.0--or--later-blue.svg)](LICENSE)
 
 A WordPress plugin that connects a MikroTik RouterOS **User Manager** to WordPress.
 It keeps router users and profiles in sync with WordPress users, can create router
@@ -50,7 +51,8 @@ dashboard inside wp-admin to manage users, profiles, routers and sync jobs.
 
 ### From a release zip
 
-1. Download the latest release zip.
+1. Download the latest release zip from the
+   [Releases page](https://github.com/mohsenebrahimizadeh-ai/mikrotik-user-manager-bridge/releases).
 2. In wp-admin go to **Plugins → Add New → Upload Plugin**, upload the zip and activate it.
 
 ### From source
@@ -125,6 +127,10 @@ npm run build             # rebuilds admin/build and admin/health-dashboard
 npm test                  # Jest unit tests for the React admin
 ```
 
+[GitHub Actions](.github/workflows/ci.yml) runs the PHP checks on PHP 8.1, 8.2 and 8.3, and runs
+`npm ci`, `npm test` and `npm run build` on Node 20. The build step fails if the rebuilt bundles
+differ from the committed `admin/build/` and `admin/health-dashboard/` files.
+
 Two REST tests are skipped unless the WordPress core test library is available (set
 `WP_TESTS_DIR`). `tests/rest-smoke.php` is a manual smoke test against a real WordPress install:
 `WP_LOAD=/path/to/wp-load.php php tests/rest-smoke.php`.
@@ -145,7 +151,8 @@ Two REST tests are skipped unless the WordPress core test library is available (
   role, or the `manage_affiliates` capability.
 - **Profile downloads** use signed, expiring tokens.
 - **Reporting vulnerabilities**: please do not open a public issue. Use GitHub's
-  *Report a vulnerability* (private security advisory) on this repository instead.
+  [*Report a vulnerability*](https://github.com/mohsenebrahimizadeh-ai/mikrotik-user-manager-bridge/security/advisories/new)
+  (private security advisory) on this repository instead.
 
 ## Contributing
 

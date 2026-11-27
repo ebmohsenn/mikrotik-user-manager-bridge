@@ -2,6 +2,11 @@
   "name": "mumb-admin",
   "private": true,
   "license": "GPL-2.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mohsenebrahimizadeh-ai/mikrotik-user-manager-bridge.git",
+    "directory": "admin"
+  },
   "version": "0.2.0",
   "scripts": {
     "dev": "vite",

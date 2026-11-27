@@ -6,6 +6,16 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- SQL queries in the `/sync/diff`, `/user-profiles`, profiles and settings REST endpoints passed
+  table names as quoted `%s` values, which produced invalid SQL. They now use the `%i`
+  identifier placeholder.
+- Loading the main plugin file twice no longer warns about already-defined `MUMB_*` constants.
+
+### Changed
+- Added a GitHub Actions CI workflow (PHP 8.1 to 8.3 lint, PHPCS, PHPStan, PHPUnit; Node 20 Jest
+  tests, build, and a check that the committed admin bundles match the source).
+
 ## [2.1.0] - 2026-11-10
 
 First public open-source release. Versions before this one were developed privately.
