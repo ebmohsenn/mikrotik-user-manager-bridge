@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: MikroTik User Manager Bridge
- * Plugin URI: https://github.com/mohsenebrahimizadeh-ai/mikrotik-user-manager-bridge
+ * Plugin URI: https://github.com/ebmohsenn/mikrotik-user-manager-bridge
  * Description: Bridge MikroTik RouterOS User Manager with WordPress through the RouterOS API (ports 8728/8729) or REST API. Synchronizes router users and profiles with WordPress, provisions users from WooCommerce orders, provides REST APIs and a React admin dashboard, and includes optional reseller/affiliate support.
  * Version: 2.1.1
  * Author: Mohsen Ebrahimizadeh
