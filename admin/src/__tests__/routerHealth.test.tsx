@@ -2,6 +2,17 @@ import React from 'react';
 import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import RouterHealth from '../components/RouterHealth.jsx';
 import { ToastContext } from '../toast.jsx';
+import { RefreshProvider, useRefreshControl } from '../common/RefreshContext.jsx';
+
+// The refresh button lives in the app header and reaches components through RefreshContext.
+const RefreshButton = () => {
+  const { trigger } = useRefreshControl();
+  return (
+    <button type="button" onClick={() => trigger()}>
+      Refresh
+    </button>
+  );
+};
 
 type TestGlobal = typeof globalThis & {
   MWP_BOOTSTRAP?: {
@@ -71,13 +82,19 @@ describe('RouterHealth', () => {
     await act(async () => {
       render(
         <ToastContext.Provider value={() => undefined}>
-          <RouterHealth />
+          <RefreshProvider>
+            <RefreshButton />
+            <RouterHealth />
+          </RefreshProvider>
         </ToastContext.Provider>
       );
     });
 
     await screen.findByText(/fail/);
-    fireEvent.click(screen.getByRole('button', { name: /Refresh/i }));
-    expect(fetchMock).toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Refresh/i }));
+    });
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
   });
 });

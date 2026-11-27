@@ -106,6 +106,7 @@ declare global {
     MWP_BOOTSTRAP?: {
       rest?: {
         mwpBase?: string;
+        mikrotikBase?: string;
         nonce?: string;
       };
       i18n?: Record<string, string>;

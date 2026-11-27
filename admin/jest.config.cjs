@@ -5,6 +5,9 @@ module.exports = {
   setupFilesAfterEnv: ['<rootDir>/setupTests.ts'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
   moduleNameMapper: {
+    // Source files import TypeScript modules with a .js suffix (e.g. '../hooks/useRest.js'),
+    // which Vite resolves to the .ts file. Strip the suffix so Jest resolves it the same way.
+    '^(\\.{1,2}/.*)\\.js$': '$1',
     '^@mwp/utils/(.*)$': '<rootDir>/src/utils/$1',
     '^@mwp/api/(.*)$': '<rootDir>/src/api/$1',
     '^@mwp/types$': '<rootDir>/src/types',
