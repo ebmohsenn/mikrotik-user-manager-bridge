@@ -30,7 +30,7 @@ dashboard inside wp-admin to manage users, profiles, routers and sync jobs.
 - **Resellers / affiliates** (optional): an `affiliate_partner` role whose holders can create and
   manage their own customers' router accounts.
 - **Front-end shortcodes**: `[mikrotik_dashboard]` (customer self-service),
-  `[mikrotik_profile_download]` (signed, expiring OpenVPN profile download), and
+  `[mikrotik_profile_download]` (OpenVPN profile download through a single-use, expiring link), and
   `[mikrotik_server_status]`.
 - **White-label branding**: the display name and logo in the admin UI and dashboard widgets
   come from your site title, or from a filter/option.
@@ -101,6 +101,9 @@ its cron events.
 | `mumb_branding_defaults` | Default brand name and logo. |
 | `mumb_branding_tokens` | Literal tokens (default `{brand}`) that are replaced with the brand name in this plugin's translated strings. |
 | `mumb_default_affiliate_owner` | User ID set as the affiliate owner of self-registered users. The default is `1`; return `0` to disable. |
+| `mumb_user_allowed_groups` | Groups a customer may move their own router account to through `/self/group` and `/self/location`. Return an array of group names to restrict it (for example to the plan they paid for). The default, `null`, allows any existing group. |
+| `mumb_affiliate_allowed_groups` | Groups an affiliate may assign to the users they manage. Defaults to the groups stored for that affiliate; an empty list means no restriction. |
+| `mumb_health_authenticate_host` | Whether the health check may log in to a registry server with the main router's credentials to read its metrics. Defaults to `true` only for the main router's own host; other servers get a plain reachability probe. |
 
 ## Screenshots
 
@@ -149,7 +152,11 @@ Two REST tests are skipped unless the WordPress core test library is available (
   Self-service endpoints (`/self/*`) require a logged-in user, and changing a password also
   requires the current one. Reseller endpoints require administrators, the `affiliate_partner`
   role, or the `manage_affiliates` capability.
-- **Profile downloads** use signed, expiring tokens.
+- **Router account passwords**: an account created from a WooCommerce order starts with a random
+  password. The customer's WordPress password is copied to the router the next time they change
+  or reset it; it waits in the job queue encrypted and is never kept in the job history.
+- **Profile downloads** use random, single-use tokens that expire and are bound to the user
+  they were issued to.
 - **Reporting vulnerabilities**: please do not open a public issue. Use GitHub's
   [*Report a vulnerability*](https://github.com/ebmohsenn/mikrotik-user-manager-bridge/security/advisories/new)
   (private security advisory) on this repository instead.
