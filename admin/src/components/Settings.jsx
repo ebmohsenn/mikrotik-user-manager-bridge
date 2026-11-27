@@ -89,10 +89,8 @@ export default function Settings(){
       return
     }
     const payload = Object.assign({}, form, { profile_product_map: parsedMap })
-    console.log('[Settings] Sending payload:', payload)
     fetch(base + '/settings', { method:'POST', headers, body: JSON.stringify(payload) }).then(async function(r){
       var j=null; try{ j = await r.json() }catch(error){ console.warn('Failed to parse settings response', error) }
-      console.log('[Settings] Response status:', r.status, 'Body:', j)
       if(r.ok && j && j.success){
         showToast('success', __('Settings saved'))
         fetchSettings()
@@ -265,7 +263,7 @@ export default function Settings(){
           <input className='mwp-input' placeholder={__('Host / IP')} value={form.host||''} onChange={function(e){ setForm(Object.assign({}, form, { host: e.target.value })) }} disabled={disabled} />
           <input className='mwp-input' type='number' placeholder={__('Port')} value={form.port||8728} onChange={function(e){ var v=parseInt(e.target.value||'8728',10); setForm(Object.assign({}, form, { port: v })) }} disabled={disabled} />
           <input className='mwp-input' placeholder={__('Username')} value={form.username||''} onChange={function(e){ setForm(Object.assign({}, form, { username: e.target.value })) }} disabled={disabled} />
-          <input className='mwp-input' placeholder={__('Password (leave blank to keep)')} value={form.password||''} onChange={function(e){ setForm(Object.assign({}, form, { password: e.target.value })) }} disabled={disabled} />
+          <input className='mwp-input' type='password' autoComplete='new-password' placeholder={__('Password (leave blank to keep)')} value={form.password||''} onChange={function(e){ setForm(Object.assign({}, form, { password: e.target.value })) }} disabled={disabled} />
           <label className='mwp-checkbox'>
             <input type='checkbox' checked={!!form.ssl} onChange={function(e){ setForm(Object.assign({}, form, { ssl: e.target.checked ? 1 : 0 })) }} disabled={disabled} /> {__('Use TLS/SSL')}
           </label>
