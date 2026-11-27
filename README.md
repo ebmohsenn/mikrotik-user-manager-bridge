@@ -1,5 +1,7 @@
 # MikroTik User Manager Bridge
 
+[![License: GPL v2 or later](https://img.shields.io/badge/license-GPL--2.0--or--later-blue.svg)](https://www.gnu.org/licenses/gpl-2.0.html)
+
 A WordPress plugin that connects a MikroTik RouterOS **User Manager** to WordPress.
 It keeps router users and profiles in sync with WordPress users, can create router
 accounts automatically from WooCommerce orders, and gives administrators a React
@@ -151,7 +153,13 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-[MIT](LICENSE) © 2026 Mohsen Ebrahimizadeh
+Copyright © 2026 Mohsen Ebrahimizadeh
+
+This program is free software; you can redistribute it and/or modify it under the terms of the
+GNU General Public License as published by the Free Software Foundation; either version 2 of the
+License, or (at your option) any later version. See [LICENSE](LICENSE) for the full text.
+
+SPDX-License-Identifier: `GPL-2.0-or-later`
 
 MikroTik and RouterOS are trademarks of MikroTik SIA. This project is not affiliated with or
 endorsed by MikroTik.

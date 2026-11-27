@@ -1,6 +1,7 @@
 {
   "name": "mumb-admin",
   "private": true,
+  "license": "GPL-2.0-or-later",
   "version": "0.2.0",
   "scripts": {
     "dev": "vite",

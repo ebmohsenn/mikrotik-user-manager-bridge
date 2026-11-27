@@ -5,14 +5,29 @@
  * Description: Bridge MikroTik RouterOS User Manager with WordPress through the RouterOS API (ports 8728/8729) or REST API. Synchronizes router users and profiles with WordPress, provisions users from WooCommerce orders, provides REST APIs and a React admin dashboard, and includes optional reseller/affiliate support.
  * Version: 2.1.0
  * Author: Mohsen Ebrahimizadeh
- * License: MIT
- * License URI: https://opensource.org/licenses/MIT
+ * License: GPL-2.0-or-later
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: mikrotik-user-manager-bridge
  * Domain Path: /languages
  * Requires at least: 6.5
  * Tested up to: 6.6
  * Requires PHP: 8.1
  * Network: false
+ *
+ * Copyright (C) 2026 Mohsen Ebrahimizadeh
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, see <https://www.gnu.org/licenses/>.
  *
  * @package MikroTik_User_Manager_Bridge
  */

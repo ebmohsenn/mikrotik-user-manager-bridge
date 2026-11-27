@@ -2,7 +2,7 @@
     "name": "mohsenebrahimizadeh-ai/mikrotik-user-manager-bridge",
     "description": "WordPress plugin that bridges MikroTik RouterOS User Manager with WordPress and WooCommerce.",
     "type": "wordpress-plugin",
-    "license": "MIT",
+    "license": "GPL-2.0-or-later",
     "authors": [
         {
             "name": "Mohsen Ebrahimizadeh"

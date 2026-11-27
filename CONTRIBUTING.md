@@ -45,4 +45,5 @@ running npm.
 - Do not commit real router addresses, credentials or customer data, including in test fixtures.
 - Add a line under `## [Unreleased]` in `CHANGELOG.md`.
 
-By contributing you agree that your contributions are licensed under the MIT License.
+By contributing you agree that your contributions are licensed under the GNU General Public License v2.0 or later
+(GPL-2.0-or-later), the same license as the project.

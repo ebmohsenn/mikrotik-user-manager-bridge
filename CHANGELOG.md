@@ -26,7 +26,8 @@ First public open-source release. Versions before this one were developed privat
 - Branding: `gettext` filters now only touch this plugin's text domain, not every string on the site.
 
 ### Changed
-- Relicensed under the MIT License.
+- Licensed under the GNU General Public License v2.0 or later (GPL-2.0-or-later), the standard
+  license for WordPress plugins.
 - The repository layout is now a standalone plugin: the plugin root is the repository root, and
   Composer's `vendor/` lives inside the plugin.
 - Sentry reporting is opt-in through the `MUMB_SENTRY_DSN` constant, and `sentry/sentry` is a
