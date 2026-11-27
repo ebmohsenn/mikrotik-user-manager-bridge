@@ -6,6 +6,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [2.1.1] - 2026-11-27
+
 ### Fixed
 - SQL queries in the `/sync/diff`, `/user-profiles`, profiles and settings REST endpoints passed
   table names as quoted `%s` values, which produced invalid SQL. They now use the `%i`

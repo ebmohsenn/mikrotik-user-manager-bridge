@@ -3,7 +3,7 @@
  * Plugin Name: MikroTik User Manager Bridge
  * Plugin URI: https://github.com/mohsenebrahimizadeh-ai/mikrotik-user-manager-bridge
  * Description: Bridge MikroTik RouterOS User Manager with WordPress through the RouterOS API (ports 8728/8729) or REST API. Synchronizes router users and profiles with WordPress, provisions users from WooCommerce orders, provides REST APIs and a React admin dashboard, and includes optional reseller/affiliate support.
- * Version: 2.1.0
+ * Version: 2.1.1
  * Author: Mohsen Ebrahimizadeh
  * License: GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -39,7 +39,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 use MUMB\Services\SettingsService;
 
-defined( 'MUMB_VERSION' ) || define( 'MUMB_VERSION', '2.1.0' );
+defined( 'MUMB_VERSION' ) || define( 'MUMB_VERSION', '2.1.1' );
 defined( 'MUMB_FILE' ) || define( 'MUMB_FILE', __FILE__ );
 defined( 'MUMB_DIR' ) || define( 'MUMB_DIR', plugin_dir_path( __FILE__ ) );
 defined( 'MUMB_URL' ) || define( 'MUMB_URL', plugin_dir_url( __FILE__ ) );
