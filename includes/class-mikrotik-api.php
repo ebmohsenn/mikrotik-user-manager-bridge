@@ -130,7 +130,7 @@ class MikroTik_API {
 	public function add_user( array $data ): array {
 		$this->record( 'add_user', $data );
 		/** @var array{status: string, data?: array<string, mixed>, error_message?: string} */
-		return $this->call( 'createUser', $data );
+		return $this->call( 'createUser', array( $data ) );
 	}
 
 	/**
@@ -174,7 +174,7 @@ class MikroTik_API {
 	 */
 	public function add_group( array $data ): array {
 		/** @var array{status: string, data?: array<string, mixed>, error_message?: string} */
-		return $this->call( 'createGroup', $data, $this->restClient !== null );
+		return $this->call( 'createGroup', array( $data ), $this->restClient !== null );
 	}
 
 	/**
@@ -211,7 +211,7 @@ class MikroTik_API {
 	 */
 	public function create_profile( array $data ): array {
 		/** @var array{status: string, data?: array<string, mixed>, error_message?: string} */
-		return $this->call( 'createProfile', $data, $this->restClient !== null );
+		return $this->call( 'createProfile', array( $data ), $this->restClient !== null );
 	}
 
 	/**
@@ -303,7 +303,7 @@ class MikroTik_API {
 	 */
 	public function create_router( array $data ): array {
 		/** @var array{status: string, data?: array<string, mixed>, error_message?: string} */
-		return $this->call_rest_only( 'createRouter', $data );
+		return $this->call_rest_only( 'createRouter', array( $data ) );
 	}
 
 	/**

@@ -160,8 +160,12 @@ add_shortcode( 'mikrotik_dashboard', function () {
     const result = document.getElementById("mwp-group-result");
     if (!form || !select || !result) { return; }
     function show(type, message) {
-        const cls = type === "success" ? "notice notice-success" : type === "warning" ? "notice notice-warning" : "notice notice-error";
-        result.innerHTML = '<div class="' + cls + '"><p>' + message + '</p></div>';
+        const box = document.createElement("div");
+        box.className = type === "success" ? "notice notice-success" : type === "warning" ? "notice notice-warning" : "notice notice-error";
+        const text = document.createElement("p");
+        text.textContent = String(message);
+        box.appendChild(text);
+        result.replaceChildren(box);
     }
     form.addEventListener("submit", function(evt){
         evt.preventDefault();
@@ -187,7 +191,19 @@ add_shortcode( 'mikrotik_dashboard', function () {
             }
         }).catch(function(){
             show('error', msgs.error);
-});
+        });
+    });
+})();
+</script>
+JS,
+            wp_json_encode( $rest_base ),
+            wp_json_encode( $rest_nonce ),
+            wp_json_encode( $messages )
+        );
+    }
+
+    return ob_get_clean();
+} );
 
 add_shortcode( 'mikrotik_profile_download', function ( $atts ) {
 	if ( ! is_user_logged_in() ) {
@@ -226,7 +242,7 @@ add_shortcode( 'mikrotik_profile_download', function ( $atts ) {
 	$download_url = add_query_arg( '_wpnonce', wp_create_nonce( 'wp_rest' ), $download_url );
 	$ttl_seconds = SettingsService::get_profile_token_ttl();
 	$ttl_minutes = max( 1, (int) ceil( $ttl_seconds / MINUTE_IN_SECONDS ) );
-	$template    = apply_filters( 'mumb_profile_download_template', MUMB_DIR . 'templates/profile-download.php' );
+	$template    = apply_filters( 'mumb_profile_download_template', plugin_dir_path( MUMB_FILE ) . 'templates/profile-download.php' );
 	$label       = (string) apply_filters( 'mumb_profile_download_button_label', $atts['label'] );
 
 	ob_start();
@@ -244,7 +260,7 @@ add_shortcode( 'mikrotik_profile_download', function ( $atts ) {
 add_shortcode( 'mikrotik_server_status', function () {
 	static $script_printed = false;
 	$endpoint = esc_url( rest_url( 'mikrotik/v1/servers/status' ) );
-	$template = apply_filters( 'mumb_server_status_template', MUMB_DIR . 'templates/server-status.php' );
+	$template = apply_filters( 'mumb_server_status_template', plugin_dir_path( MUMB_FILE ) . 'templates/server-status.php' );
 	$container_id = 'mumb-server-status-' . wp_rand( 1000, 9999 );
 
 	ob_start();
@@ -261,6 +277,8 @@ add_shortcode( 'mikrotik_server_status', function () {
 		?>
 		<script>
 		(function(){
+			// The status endpoint is for administrators; signed-in users send their REST nonce, visitors get the error text.
+			var nonce = <?php echo wp_json_encode( is_user_logged_in() ? wp_create_nonce( 'wp_rest' ) : '' ); ?>;
 			function renderServerStatus(container, data){
 				if(!container){return;}
 				if(!Array.isArray(data) || data.length === 0){
@@ -270,7 +288,7 @@ add_shortcode( 'mikrotik_server_status', function () {
 				var html = '<div class="mumb-server-grid">';
 				data.forEach(function(row){
 					var status = String(row.status||'offline').toLowerCase();
-					var badgeClass = 'mumb-server-badge mumb-server-badge-' + status;
+					var badgeClass = 'mumb-server-badge mumb-server-badge-' + status.replace(/[^a-z0-9_-]/g, '');
 					var name = row.name || row.hostname || '—';
 					var latency = typeof row.latency_ms === 'number' ? row.latency_ms + ' ms' : '—';
 					var active = typeof row.active_users === 'number' ? row.active_users : '—';
@@ -289,7 +307,7 @@ add_shortcode( 'mikrotik_server_status', function () {
 				var endpoint = container ? container.getAttribute('data-endpoint') : '';
 				if(!endpoint){ return; }
 				container.innerHTML = '<p class="mumb-server-loading"><?php echo esc_js( __( 'Loading server status…', 'mikrotik-user-manager-bridge' ) ); ?></p>';
-				fetch(endpoint, { credentials: 'omit' }).then(function(resp){
+				fetch(endpoint, nonce ? { credentials: 'same-origin', headers: { 'X-WP-Nonce': nonce } } : { credentials: 'omit' }).then(function(resp){
 					if(!resp.ok){ throw new Error('HTTP ' + resp.status); }
 					return resp.json();
 				}).then(function(payload){
@@ -327,16 +345,4 @@ add_shortcode( 'mikrotik_server_status', function () {
 	}
 
 	return ob_get_clean();
-} );
-    });
-})();
-</script>
-JS,
-            wp_json_encode( $rest_base ),
-            wp_json_encode( $rest_nonce ),
-            wp_json_encode( $messages )
-        );
-    }
-
-    return ob_get_clean();
 } );

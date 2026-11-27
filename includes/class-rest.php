@@ -433,10 +433,11 @@ class MUMB_REST {
 		if ( is_wp_error( $context ) ) {
 			return new WP_REST_Response( array( 'message' => $context->get_error_message() ), 403 );
 		}
-		$server_id = $request->get_param( 'server_id' );
-		$server_id = is_numeric( $server_id ) ? (int) $server_id : 0;
-		if ( $server_id <= 0 && isset( $context['server_id'] ) ) {
-			$server_id = (int) $context['server_id'];
+		// The server the token was issued for wins; the query parameter is only a fallback for tokens without one.
+		$server_id = isset( $context['server_id'] ) && is_numeric( $context['server_id'] ) ? (int) $context['server_id'] : 0;
+		if ( $server_id <= 0 ) {
+			$server_param = $request->get_param( 'server_id' );
+			$server_id    = is_numeric( $server_param ) ? (int) $server_param : 0;
 		}
 		if ( $server_id <= 0 ) {
 			$server_id = MUMB_Profile_Service::get_default_server_id();
