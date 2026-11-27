@@ -15,7 +15,12 @@ final class MUMB_Settings {
 	public bool $verify_ssl                 = true;
 	public int $api_timeout                 = 8;
 	public ?string $mirror_authority        = null;
-	public bool $um_rest                    = true; // Always use User Manager
+	/**
+	 * Always use the User Manager REST API.
+	 *
+	 * @var bool
+	 */
+	public bool $um_rest                    = true;
 	public ?string $um_rest_base            = null;
 	public int $retry_max                   = 3;
 	public int $retry_base_ms               = 200;

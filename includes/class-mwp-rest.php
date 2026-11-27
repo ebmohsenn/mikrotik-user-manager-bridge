@@ -362,327 +362,327 @@ class MWP_REST {
 								'data'    => array(),
 							), 200 );
 						}
-					/** @var string $p */
-					$p = $wpdb->prefix;
-					if ( '' === $p ) {
-						return new WP_REST_Response( array(
-							'success' => true,
-							'data'    => array(
-								'diff'     => array(),
-								'summary'  => array(),
-								'users'    => array(),
-								'groups'   => array(),
-								'profiles' => array(),
-								'notes'    => array(),
+						/** @var string $p */
+						$p = $wpdb->prefix;
+						if ( '' === $p ) {
+							return new WP_REST_Response( array(
+								'success' => true,
+								'data'    => array(
+									'diff'     => array(),
+									'summary'  => array(),
+									'users'    => array(),
+									'groups'   => array(),
+									'profiles' => array(),
+									'notes'    => array(),
+								),
+							), 200 );
+						}
+						$out           = array(
+							'create' => array(
+								'groups'        => array(),
+								'profiles'      => array(),
+								'users'         => array(),
+								'user_profiles' => array(),
 							),
-						), 200 );
-					}
-					$out           = array(
-						'create' => array(
+							'update' => array( 'users' => array() ),
+						);
+						$groups_table        = $p . 'mikrotik_groups';
+						$profiles_table      = $p . 'mikrotik_profiles';
+						$users_table         = $p . 'mikrotik_users';
+						$user_profiles_table = $p . 'mikrotik_user_profiles';
+						$log_anomaly   = static function ( string $action, mixed $response ): void {
+							if ( ! class_exists( 'MUMB_Logger' ) ) {
+								return;
+							}
+							if ( is_array( $response ) ) {
+								$context = array(
+									'status' => $response['status'] ?? null,
+									'error'  => $response['error_message'] ?? null,
+									'keys'   => array_keys( $response ),
+								);
+							} else {
+								$context = array( 'response_type' => gettype( $response ) );
+							}
+							MUMB_Logger::log( 'warning', 'rest_sync_diff', $action, $context );
+						};
+						/** @var string|false $prepared_sql */
+						$prepared_sql = $wpdb->prepare( 'SELECT name FROM `%s`', $groups_table );
+						/** @var array<string>|null $db_groups_raw */
+						$db_groups_raw = is_string( $prepared_sql ) ? $wpdb->get_col( $prepared_sql ) : null;
+						$db_groups     = self::sanitize_string_list( $db_groups_raw );
+
+						$live_g = $api->getGroups();
+						/** @var array{status:string, data?:array<int, array<string, mixed>>, error_code?:string, error_message?:string} $live_g */
+						$lg = array();
+						if ( ! self::is_success( $live_g ) ) {
+							$log_anomaly( 'getGroups', $live_g );
+						}
+						$live_group_rows = $live_g['data'] ?? array();
+						if ( ! is_array( $live_group_rows ) ) {
+							$log_anomaly( 'getGroups', $live_g );
+							$live_group_rows = array();
+						}
+						foreach ( $live_group_rows as $row ) {
+							if ( ! is_array( $row ) ) {
+								continue;
+							}
+							$name_val = $row['name'] ?? null;
+							if ( ! is_scalar( $name_val ) ) {
+								continue;
+							}
+							$name = (string) $name_val;
+							if ( '' === $name ) {
+								continue;
+							}
+							$lg[ $name ] = true;
+						}
+						foreach ( $db_groups as $group_name ) {
+							if ( empty( $lg[ $group_name ] ) ) {
+								$out['create']['groups'][] = $group_name;
+							}
+						}
+
+						/** @var string|false $prepared_sql */
+						$prepared_sql = $wpdb->prepare( 'SELECT name FROM `%s`', $profiles_table );
+						/** @var array<string>|null $db_profiles_raw */
+						$db_profiles_raw = is_string( $prepared_sql ) ? $wpdb->get_col( $prepared_sql ) : null;
+						$db_profiles     = self::sanitize_string_list( $db_profiles_raw );
+						$live_p          = $api->getProfiles();
+						/** @var array{status:string, data?:array<int, array<string, mixed>>, error_code?:string, error_message?:string} $live_p */
+						$lp = array();
+						if ( ! self::is_success( $live_p ) ) {
+							$log_anomaly( 'getProfiles', $live_p );
+						}
+						$live_profile_rows = $live_p['data'] ?? array();
+						if ( ! is_array( $live_profile_rows ) ) {
+							$log_anomaly( 'getProfiles', $live_p );
+							$live_profile_rows = array();
+						}
+						foreach ( $live_profile_rows as $row ) {
+							if ( ! is_array( $row ) ) {
+								continue;
+							}
+							/** @var mixed $name_val */
+							$name_val = $row['name'] ?? null;
+							if ( ! is_scalar( $name_val ) ) {
+								continue;
+							}
+							$name = (string) $name_val;
+							if ( '' === $name ) {
+								continue;
+							}
+							$lp[ $name ] = true;
+						}
+						foreach ( $db_profiles as $profile_name ) {
+							if ( empty( $lp[ $profile_name ] ) ) {
+								$out['create']['profiles'][] = $profile_name;
+							}
+						}
+						/** @var string|false $sql_users */
+						$sql_users = $wpdb->prepare( 'SELECT username, comment, profile FROM `%s`', $users_table );
+						/** @var array<array<string,mixed>>|null $db_users_raw */
+						$db_users_raw = is_string( $sql_users ) ? $wpdb->get_results( $sql_users, ARRAY_A ) : array();
+						$db_users     = is_array( $db_users_raw ) ? $db_users_raw : array();
+						// For delete diff: build lowercase username sets for quick membership tests
+						/** @var string|false $sql_usernames */
+						$sql_usernames = $wpdb->prepare( 'SELECT username FROM `%s`', $users_table );
+						/** @var array<string>|null $db_usernames_raw */
+						$db_usernames_raw = is_string( $sql_usernames ) ? $wpdb->get_col( $sql_usernames ) : array();
+						$db_usernames     = array_unique( array_map( 'strtolower', self::sanitize_string_list( $db_usernames_raw ) ) );
+						$live_u           = $api->getUsers();
+						/** @var array{status:string, data?:array<int, array<string, mixed>>, error_code?:string, error_message?:string} $live_u */
+						$lu = array();
+						if ( ! self::is_success( $live_u ) ) {
+							$log_anomaly( 'getUsers', $live_u );
+						}
+						$live_user_rows = $live_u['data'] ?? array();
+						if ( ! is_array( $live_user_rows ) ) {
+							$log_anomaly( 'getUsers', $live_u );
+							$live_user_rows = array();
+						}
+						foreach ( $live_user_rows as $row ) {
+							if ( ! is_array( $row ) ) {
+								continue;
+							}
+							$user_val = $row['username'] ?? ( $row['login'] ?? ( $row['name'] ?? '' ) );
+							$username = is_scalar( $user_val ) ? (string) $user_val : '';
+							if ( '' === $username ) {
+								continue;
+							}
+							$lu[ strtolower( $username ) ] = $row;
+						}
+						foreach ( $db_users as $u ) {
+							/** @var mixed $username_val */
+							$username_val = $u['username'] ?? '';
+							$username     = is_scalar( $username_val ) ? (string) $username_val : '';
+							if ( '' === $username ) {
+								continue;
+							}
+							$key = strtolower( $username );
+							if ( ! isset( $lu[ $key ] ) ) {
+								$out['create']['users'][] = $username;
+								continue;
+							}
+							$row = $lu[ $key ];
+							if ( ! is_array( $row ) ) {
+								continue;
+							}
+							$chg             = array();
+							/** @var mixed $row_comment_val */
+							$row_comment_val = $row['comment'] ?? '';
+							$row_comment     = is_scalar( $row_comment_val ) ? (string) $row_comment_val : '';
+							/** @var mixed $db_comment_val */
+							$db_comment_val  = $u['comment'] ?? '';
+							$db_comment      = is_scalar( $db_comment_val ) ? (string) $db_comment_val : '';
+							if ( $row_comment !== $db_comment ) {
+								$chg[] = 'comment';
+							}
+							/** @var mixed $gdb_val */
+							$gdb_val   = $u['profile'] ?? '';
+							$gdb       = is_scalar( $gdb_val ) ? (string) $gdb_val : '';
+							/** @var mixed $glive_val */
+							$glive_val = $row['group'] ?? '';
+							$glive     = is_scalar( $glive_val ) ? (string) $glive_val : '';
+							if ( '' !== $gdb && $gdb !== $glive ) {
+								$chg[] = 'group';
+							}
+							if ( $chg ) {
+								$out['update']['users'][] = array(
+									'username' => $username,
+									'fields'   => $chg,
+								);
+							}
+						}
+						/** @var string|false $sql_pairs */
+						$sql_pairs = $wpdb->prepare( 'SELECT username, profile FROM `%s`', $user_profiles_table );
+						/** @var array<array<string,mixed>>|null $db_pairs_raw */
+						$db_pairs_raw = is_string( $sql_pairs ) ? $wpdb->get_results( $sql_pairs, ARRAY_A ) : array();
+						$db_pairs     = is_array( $db_pairs_raw ) ? $db_pairs_raw : array();
+						$live_up      = $api->getUserProfiles();
+						/** @var array{status:string, data?:array<int, array<string, mixed>>, error_code?:string, error_message?:string} $live_up */
+						$lup = array();
+						if ( ! self::is_success( $live_up ) ) {
+							$log_anomaly( 'getUserProfiles', $live_up );
+						}
+						$live_profile_rows = $live_up['data'] ?? array();
+						if ( ! is_array( $live_profile_rows ) ) {
+							$log_anomaly( 'getUserProfiles', $live_up );
+							$live_profile_rows = array();
+						}
+						foreach ( $live_profile_rows as $row ) {
+							if ( ! is_array( $row ) ) {
+								continue;
+							}
+							/** @var mixed $user_val */
+							$user_val    = $row['user'] ?? ( $row['users'] ?? ( $row['name'] ?? '' ) );
+							$user        = is_scalar( $user_val ) ? (string) $user_val : '';
+							$profile_val = $row['profile'] ?? '';
+							$profile     = is_scalar( $profile_val ) ? (string) $profile_val : '';
+							if ( '' === $user || '' === $profile ) {
+								continue;
+							}
+							$lup[ strtolower( $user ) . '|' . $profile ] = true;
+						}
+						foreach ( $db_pairs as $r ) {
+							/** @var mixed $user_val */
+							$user_val    = $r['username'] ?? null;
+							/** @var mixed $profile_val */
+							$profile_val = $r['profile'] ?? null;
+							if ( ! is_scalar( $user_val ) || ! is_scalar( $profile_val ) ) {
+								continue;
+							}
+							$user    = (string) $user_val;
+							$profile = (string) $profile_val;
+							if ( '' === $user || '' === $profile ) {
+								continue;
+							}
+							$k = strtolower( $user ) . '|' . $profile;
+							if ( empty( $lup[ $k ] ) ) {
+								$out['create']['user_profiles'][] = array(
+									'username' => $user,
+									'profile'  => $profile,
+								);
+							}
+						}
+						// Deletes (router extras)
+						$out['delete'] = array(
 							'groups'        => array(),
 							'profiles'      => array(),
 							'users'         => array(),
 							'user_profiles' => array(),
-						),
-						'update' => array( 'users' => array() ),
-					);
-					$groups_table        = $p . 'mikrotik_groups';
-					$profiles_table      = $p . 'mikrotik_profiles';
-					$users_table         = $p . 'mikrotik_users';
-					$user_profiles_table = $p . 'mikrotik_user_profiles';
-					$log_anomaly   = static function ( string $action, mixed $response ): void {
-						if ( ! class_exists( 'MUMB_Logger' ) ) {
-							return;
-						}
-						if ( is_array( $response ) ) {
-							$context = array(
-								'status' => $response['status'] ?? null,
-								'error'  => $response['error_message'] ?? null,
-								'keys'   => array_keys( $response ),
-							);
-						} else {
-							$context = array( 'response_type' => gettype( $response ) );
-						}
-						MUMB_Logger::log( 'warning', 'rest_sync_diff', $action, $context );
-					};
-					/** @var string|false $prepared_sql */
-					$prepared_sql = $wpdb->prepare( 'SELECT name FROM `%s`', $groups_table );
-					/** @var array<string>|null $db_groups_raw */
-					$db_groups_raw = is_string( $prepared_sql ) ? $wpdb->get_col( $prepared_sql ) : null;
-					$db_groups     = self::sanitize_string_list( $db_groups_raw );
-
-						$live_g = $api->getGroups();
-					/** @var array{status:string, data?:array<int, array<string, mixed>>, error_code?:string, error_message?:string} $live_g */
-					$lg = array();
-					if ( ! self::is_success( $live_g ) ) {
-							$log_anomaly( 'getGroups', $live_g );
-					}
-					$live_group_rows = $live_g['data'] ?? array();
-					if ( ! is_array( $live_group_rows ) ) {
-							$log_anomaly( 'getGroups', $live_g );
-						$live_group_rows = array();
-					}
-					foreach ( $live_group_rows as $row ) {
-						if ( ! is_array( $row ) ) {
-							continue;
-						}
-						$name_val = $row['name'] ?? null;
-						if ( ! is_scalar( $name_val ) ) {
-							continue;
-						}
-						$name = (string) $name_val;
-						if ( '' === $name ) {
-							continue;
-						}
-						$lg[ $name ] = true;
-					}
-					foreach ( $db_groups as $group_name ) {
-						if ( empty( $lg[ $group_name ] ) ) {
-							$out['create']['groups'][] = $group_name;
-						}
-					}
-
-					/** @var string|false $prepared_sql */
-					$prepared_sql = $wpdb->prepare( 'SELECT name FROM `%s`', $profiles_table );
-					/** @var array<string>|null $db_profiles_raw */
-					$db_profiles_raw = is_string( $prepared_sql ) ? $wpdb->get_col( $prepared_sql ) : null;
-					$db_profiles     = self::sanitize_string_list( $db_profiles_raw );
-						$live_p          = $api->getProfiles();
-					/** @var array{status:string, data?:array<int, array<string, mixed>>, error_code?:string, error_message?:string} $live_p */
-					$lp = array();
-					if ( ! self::is_success( $live_p ) ) {
-							$log_anomaly( 'getProfiles', $live_p );
-					}
-					$live_profile_rows = $live_p['data'] ?? array();
-					if ( ! is_array( $live_profile_rows ) ) {
-							$log_anomaly( 'getProfiles', $live_p );
-						$live_profile_rows = array();
-					}
-					foreach ( $live_profile_rows as $row ) {
-						if ( ! is_array( $row ) ) {
-							continue;
-						}
-						/** @var mixed $name_val */
-						$name_val = $row['name'] ?? null;
-						if ( ! is_scalar( $name_val ) ) {
-							continue;
-						}
-						$name = (string) $name_val;
-						if ( '' === $name ) {
-							continue;
-						}
-						$lp[ $name ] = true;
-					}
-					foreach ( $db_profiles as $profile_name ) {
-						if ( empty( $lp[ $profile_name ] ) ) {
-							$out['create']['profiles'][] = $profile_name;
-						}
-					}
-					/** @var string|false $sql_users */
-					$sql_users = $wpdb->prepare( 'SELECT username, comment, profile FROM `%s`', $users_table );
-					/** @var array<array<string,mixed>>|null $db_users_raw */
-					$db_users_raw = is_string( $sql_users ) ? $wpdb->get_results( $sql_users, ARRAY_A ) : array();
-					$db_users     = is_array( $db_users_raw ) ? $db_users_raw : array();
-					// For delete diff: build lowercase username sets for quick membership tests
-					/** @var string|false $sql_usernames */
-					$sql_usernames = $wpdb->prepare( 'SELECT username FROM `%s`', $users_table );
-					/** @var array<string>|null $db_usernames_raw */
-					$db_usernames_raw = is_string( $sql_usernames ) ? $wpdb->get_col( $sql_usernames ) : array();
-					$db_usernames     = array_unique( array_map( 'strtolower', self::sanitize_string_list( $db_usernames_raw ) ) );
-						$live_u           = $api->getUsers();
-					/** @var array{status:string, data?:array<int, array<string, mixed>>, error_code?:string, error_message?:string} $live_u */
-					$lu = array();
-					if ( ! self::is_success( $live_u ) ) {
-							$log_anomaly( 'getUsers', $live_u );
-					}
-					$live_user_rows = $live_u['data'] ?? array();
-					if ( ! is_array( $live_user_rows ) ) {
-							$log_anomaly( 'getUsers', $live_u );
-						$live_user_rows = array();
-					}
-					foreach ( $live_user_rows as $row ) {
-						if ( ! is_array( $row ) ) {
-							continue;
-						}
-						$user_val = $row['username'] ?? ( $row['login'] ?? ( $row['name'] ?? '' ) );
-						$username = is_scalar( $user_val ) ? (string) $user_val : '';
-						if ( '' === $username ) {
-							continue;
-						}
-						$lu[ strtolower( $username ) ] = $row;
-					}
-					foreach ( $db_users as $u ) {
-						/** @var mixed $username_val */
-						$username_val = $u['username'] ?? '';
-						$username     = is_scalar( $username_val ) ? (string) $username_val : '';
-						if ( '' === $username ) {
-							continue;
-						}
-						$key = strtolower( $username );
-						if ( ! isset( $lu[ $key ] ) ) {
-							$out['create']['users'][] = $username;
-							continue;
-						}
-						$row = $lu[ $key ];
-						if ( ! is_array( $row ) ) {
-							continue;
-						}
-						$chg             = array();
-						/** @var mixed $row_comment_val */
-						$row_comment_val = $row['comment'] ?? '';
-						$row_comment     = is_scalar( $row_comment_val ) ? (string) $row_comment_val : '';
-						/** @var mixed $db_comment_val */
-						$db_comment_val  = $u['comment'] ?? '';
-						$db_comment      = is_scalar( $db_comment_val ) ? (string) $db_comment_val : '';
-						if ( $row_comment !== $db_comment ) {
-							$chg[] = 'comment';
-						}
-						/** @var mixed $gdb_val */
-						$gdb_val   = $u['profile'] ?? '';
-						$gdb       = is_scalar( $gdb_val ) ? (string) $gdb_val : '';
-						/** @var mixed $glive_val */
-						$glive_val = $row['group'] ?? '';
-						$glive     = is_scalar( $glive_val ) ? (string) $glive_val : '';
-						if ( '' !== $gdb && $gdb !== $glive ) {
-							$chg[] = 'group';
-						}
-						if ( $chg ) {
-							$out['update']['users'][] = array(
-								'username' => $username,
-								'fields'   => $chg,
-							);
-						}
-					}
-					/** @var string|false $sql_pairs */
-					$sql_pairs = $wpdb->prepare( 'SELECT username, profile FROM `%s`', $user_profiles_table );
-					/** @var array<array<string,mixed>>|null $db_pairs_raw */
-					$db_pairs_raw = is_string( $sql_pairs ) ? $wpdb->get_results( $sql_pairs, ARRAY_A ) : array();
-					$db_pairs     = is_array( $db_pairs_raw ) ? $db_pairs_raw : array();
-						$live_up      = $api->getUserProfiles();
-					/** @var array{status:string, data?:array<int, array<string, mixed>>, error_code?:string, error_message?:string} $live_up */
-					$lup = array();
-					if ( ! self::is_success( $live_up ) ) {
-							$log_anomaly( 'getUserProfiles', $live_up );
-					}
-					$live_profile_rows = $live_up['data'] ?? array();
-					if ( ! is_array( $live_profile_rows ) ) {
-							$log_anomaly( 'getUserProfiles', $live_up );
-						$live_profile_rows = array();
-					}
-					foreach ( $live_profile_rows as $row ) {
-						if ( ! is_array( $row ) ) {
-							continue;
-						}
-						/** @var mixed $user_val */
-						$user_val    = $row['user'] ?? ( $row['users'] ?? ( $row['name'] ?? '' ) );
-						$user        = is_scalar( $user_val ) ? (string) $user_val : '';
-						$profile_val = $row['profile'] ?? '';
-						$profile     = is_scalar( $profile_val ) ? (string) $profile_val : '';
-						if ( '' === $user || '' === $profile ) {
-							continue;
-						}
-						$lup[ strtolower( $user ) . '|' . $profile ] = true;
-					}
-					foreach ( $db_pairs as $r ) {
-						/** @var mixed $user_val */
-						$user_val    = $r['username'] ?? null;
-						/** @var mixed $profile_val */
-						$profile_val = $r['profile'] ?? null;
-						if ( ! is_scalar( $user_val ) || ! is_scalar( $profile_val ) ) {
-							continue;
-						}
-						$user    = (string) $user_val;
-						$profile = (string) $profile_val;
-						if ( '' === $user || '' === $profile ) {
-							continue;
-						}
-						$k = strtolower( $user ) . '|' . $profile;
-						if ( empty( $lup[ $k ] ) ) {
-							$out['create']['user_profiles'][] = array(
-								'username' => $user,
-								'profile'  => $profile,
-							);
-						}
-					}
-					// Deletes (router extras)
-					$out['delete'] = array(
-						'groups'        => array(),
-						'profiles'      => array(),
-						'users'         => array(),
-						'user_profiles' => array(),
-					);
-					foreach ( array_keys( $lg ) as $name ) {
-						if ( ! in_array( $name, $db_groups, true ) ) {
-							$out['delete']['groups'][] = $name;
-						}
-					}
-					foreach ( array_keys( $lp ) as $name ) {
-						if ( ! in_array( $name, $db_profiles, true ) ) {
-							$out['delete']['profiles'][] = $name;
-						}
-					}
-					// Distinct usernames present in user_profiles (lowercased)
-					/** @var string|false $prepared_sql */
-					$prepared_sql = $wpdb->prepare( 'SELECT DISTINCT username FROM `%s`', $user_profiles_table );
-					/** @var array<string>|null $db_up_raw */
-					$db_up_raw = is_string( $prepared_sql ) ? $wpdb->get_col( $prepared_sql ) : null;
-					$db_up     = array_unique( array_map( 'strtolower', self::sanitize_string_list( $db_up_raw ) ) );
-					foreach ( array_keys( $lu ) as $uname ) {
-						if ( ! in_array( $uname, $db_usernames, true ) && ! in_array( $uname, $db_up, true ) ) {
-							$out['delete']['users'][] = $uname;
-						}
-					}
-					foreach ( $lup as $key => $_ ) {
-						$parts  = explode( '|', $key, 2 );
-						$u      = isset( $parts[0] ) ? $parts[0] : '';
-						$pr     = isset( $parts[1] ) ? $parts[1] : '';
-						$k      = strtolower( $u ) . '|' . $pr;
-						$exists = false;
-						foreach ( $db_pairs as $r ) {
-							$rr_user_val    = $r['username'] ?? null;
-							$rr_profile_val = $r['profile'] ?? null;
-							if ( ! is_scalar( $rr_user_val ) || ! is_scalar( $rr_profile_val ) ) {
-								continue;
-							}
-							$rr_user    = (string) $rr_user_val;
-							$rr_profile = (string) $rr_profile_val;
-							if ( '' === $rr_user || '' === $rr_profile ) {
-								continue;
-							}
-							$kk = strtolower( $rr_user ) . '|' . $rr_profile;
-							if ( $kk === $k ) {
-								$exists = true;
-								break;
+						);
+						foreach ( array_keys( $lg ) as $name ) {
+							if ( ! in_array( $name, $db_groups, true ) ) {
+								$out['delete']['groups'][] = $name;
 							}
 						}
-						if ( ! $exists ) {
-							$out['delete']['user_profiles'][] = array(
-								'username' => $u,
-								'profile'  => $pr,
-							);
+						foreach ( array_keys( $lp ) as $name ) {
+							if ( ! in_array( $name, $db_profiles, true ) ) {
+								$out['delete']['profiles'][] = $name;
+							}
 						}
-					}
-					return new WP_REST_Response( array(
-						'success' => true,
-						'data'    => $out,
-					), 200 );
-				} catch ( \Throwable $e ) {
-					// Log the error
-					if ( class_exists( 'MUMB_Logger' ) ) {
-						MUMB_Logger::log( 'error', 'rest_sync_diff', 'Exception caught', array(
-							'message' => $e->getMessage(),
-							'file'    => $e->getFile(),
-							'line'    => $e->getLine(),
-						) );
-					}
+						// Distinct usernames present in user_profiles (lowercased)
+						/** @var string|false $prepared_sql */
+						$prepared_sql = $wpdb->prepare( 'SELECT DISTINCT username FROM `%s`', $user_profiles_table );
+						/** @var array<string>|null $db_up_raw */
+						$db_up_raw = is_string( $prepared_sql ) ? $wpdb->get_col( $prepared_sql ) : null;
+						$db_up     = array_unique( array_map( 'strtolower', self::sanitize_string_list( $db_up_raw ) ) );
+						foreach ( array_keys( $lu ) as $uname ) {
+							if ( ! in_array( $uname, $db_usernames, true ) && ! in_array( $uname, $db_up, true ) ) {
+								$out['delete']['users'][] = $uname;
+							}
+						}
+						foreach ( $lup as $key => $_ ) {
+							$parts  = explode( '|', $key, 2 );
+							$u      = isset( $parts[0] ) ? $parts[0] : '';
+							$pr     = isset( $parts[1] ) ? $parts[1] : '';
+							$k      = strtolower( $u ) . '|' . $pr;
+							$exists = false;
+							foreach ( $db_pairs as $r ) {
+								$rr_user_val    = $r['username'] ?? null;
+								$rr_profile_val = $r['profile'] ?? null;
+								if ( ! is_scalar( $rr_user_val ) || ! is_scalar( $rr_profile_val ) ) {
+									continue;
+								}
+								$rr_user    = (string) $rr_user_val;
+								$rr_profile = (string) $rr_profile_val;
+								if ( '' === $rr_user || '' === $rr_profile ) {
+									continue;
+								}
+								$kk = strtolower( $rr_user ) . '|' . $rr_profile;
+								if ( $kk === $k ) {
+									$exists = true;
+									break;
+								}
+							}
+							if ( ! $exists ) {
+								$out['delete']['user_profiles'][] = array(
+									'username' => $u,
+									'profile'  => $pr,
+								);
+							}
+						}
+						return new WP_REST_Response( array(
+							'success' => true,
+							'data'    => $out,
+						), 200 );
+					} catch ( \Throwable $e ) {
+						// Log the error
+						if ( class_exists( 'MUMB_Logger' ) ) {
+							MUMB_Logger::log( 'error', 'rest_sync_diff', 'Exception caught', array(
+								'message' => $e->getMessage(),
+								'file'    => $e->getFile(),
+								'line'    => $e->getLine(),
+							) );
+						}
 					
-					// Return error response
-					return new WP_REST_Response( array(
-						'success' => false,
-						'message' => 'Internal error during sync diff operation',
-						'data'    => array(),
-					), 500 );
-				}
+						// Return error response
+						return new WP_REST_Response( array(
+							'success' => false,
+							'message' => 'Internal error during sync diff operation',
+							'data'    => array(),
+						), 500 );
+					}
 				},
 				'permission_callback' => function () {
 					return current_user_can( 'manage_options' );
@@ -767,98 +767,98 @@ class MWP_REST {
 		$user_profiles_callback = function ( WP_REST_Request $req ) {
 			$live = (bool) $req->get_param( 'live' );
 			if ( $live ) {
-						// Return live rows from RouterOS including state and end-time
-						$api = MWP_REST::build_api();
-						if ( ! $api ) {
-							return new WP_REST_Response(
-								array(
-									'success' => false,
-									'message' => 'Not configured',
-								),
-								400
-							);
-						}
-							$r = $api->getUserProfiles();
-						if ( ! self::is_success( $r ) ) {
-							$msg = self::normalize_error_message( $r, 'Failed' );
-							return new WP_REST_Response(
-								array(
-									'success' => false,
-									'message' => $msg,
-								),
-								500
-							);
-						}
-						$out       = array();
-						$live_rows = $r['data'] ?? array();
-						if ( ! is_array( $live_rows ) ) {
-							$live_rows = array();
-						}
-						$now = current_time( 'mysql' );
-						foreach ( $live_rows as $row ) {
-							if ( ! is_array( $row ) ) {
-								continue;
-							}
-							/** @var mixed $user_val */
-							$user_val    = $row['user'] ?? ( $row['users'] ?? ( $row['name'] ?? '' ) );
-							$username    = is_scalar( $user_val ) ? (string) $user_val : '';
-							/** @var mixed $profile_val */
-							$profile_val = $row['profile'] ?? '';
-							$profile     = is_scalar( $profile_val ) ? (string) $profile_val : '';
-							if ( '' === $username || '' === $profile ) {
-								continue;
-							}
-							/** @var mixed $state_val */
-							$state_val = $row['state'] ?? '';
-							$state     = is_scalar( $state_val ) ? (string) $state_val : '';
-							/** @var mixed $end_val */
-							$end_val   = $row['end-time'] ?? '';
-							$end       = is_scalar( $end_val ) ? (string) $end_val : '';
-							$out[]     = array(
-								'username'   => $username,
-								'profile'    => $profile,
-								'state'      => $state,
-								'end_time'   => $end,
-								'updated_at' => $now,
-								'expires_at' => $end,
-							);
-						}
-						return array(
-							'success' => true,
-							'data'    => $out,
-						);
-					}
-					// Default: from mirror DB (dedup)
-					global $wpdb;
-					if ( ! ( $wpdb instanceof wpdb ) ) {
-						return array(
+				// Return live rows from RouterOS including state and end-time
+				$api = MWP_REST::build_api();
+				if ( ! $api ) {
+					return new WP_REST_Response(
+						array(
 							'success' => false,
-							'message' => 'Database unavailable',
-						);
-					}
-					/** @var string $p */
-					$p = $wpdb->prefix;
-					if ( '' === $p ) {
-						return array(
-							'success' => false,
-							'message' => 'Database unavailable',
-						);
-					}
-					$user_profiles_table = $p . 'mikrotik_user_profiles';
-					/** @var string $query */
-            $query               = $wpdb->prepare(
-                'SELECT username, profile, MAX(updated_at) AS updated_at, MAX(expires_at) AS expires_at FROM %i GROUP BY username, profile ORDER BY updated_at DESC LIMIT 500',
-                $user_profiles_table
-            );
-					$rows_raw            = $wpdb->get_results( $query, ARRAY_A );
-					if ( ! is_array( $rows_raw ) ) {
-						$rows_raw = array();
-					}
-					$rows = self::normalize_rows( $rows_raw );
-					return array(
-						'success' => true,
-						'data'    => $rows,
+							'message' => 'Not configured',
+						),
+						400
 					);
+				}
+				$r = $api->getUserProfiles();
+				if ( ! self::is_success( $r ) ) {
+					$msg = self::normalize_error_message( $r, 'Failed' );
+					return new WP_REST_Response(
+						array(
+							'success' => false,
+							'message' => $msg,
+						),
+						500
+					);
+				}
+				$out       = array();
+				$live_rows = $r['data'] ?? array();
+				if ( ! is_array( $live_rows ) ) {
+					$live_rows = array();
+				}
+				$now = current_time( 'mysql' );
+				foreach ( $live_rows as $row ) {
+					if ( ! is_array( $row ) ) {
+						continue;
+					}
+					/** @var mixed $user_val */
+					$user_val    = $row['user'] ?? ( $row['users'] ?? ( $row['name'] ?? '' ) );
+					$username    = is_scalar( $user_val ) ? (string) $user_val : '';
+					/** @var mixed $profile_val */
+					$profile_val = $row['profile'] ?? '';
+					$profile     = is_scalar( $profile_val ) ? (string) $profile_val : '';
+					if ( '' === $username || '' === $profile ) {
+						continue;
+					}
+					/** @var mixed $state_val */
+					$state_val = $row['state'] ?? '';
+					$state     = is_scalar( $state_val ) ? (string) $state_val : '';
+					/** @var mixed $end_val */
+					$end_val   = $row['end-time'] ?? '';
+					$end       = is_scalar( $end_val ) ? (string) $end_val : '';
+					$out[]     = array(
+						'username'   => $username,
+						'profile'    => $profile,
+						'state'      => $state,
+						'end_time'   => $end,
+						'updated_at' => $now,
+						'expires_at' => $end,
+					);
+				}
+				return array(
+					'success' => true,
+					'data'    => $out,
+				);
+			}
+			// Default: from mirror DB (dedup)
+			global $wpdb;
+			if ( ! ( $wpdb instanceof wpdb ) ) {
+				return array(
+					'success' => false,
+					'message' => 'Database unavailable',
+				);
+			}
+			/** @var string $p */
+			$p = $wpdb->prefix;
+			if ( '' === $p ) {
+				return array(
+					'success' => false,
+					'message' => 'Database unavailable',
+				);
+			}
+			$user_profiles_table = $p . 'mikrotik_user_profiles';
+			/** @var string $query */
+			$query               = $wpdb->prepare(
+				'SELECT username, profile, MAX(updated_at) AS updated_at, MAX(expires_at) AS expires_at FROM %i GROUP BY username, profile ORDER BY updated_at DESC LIMIT 500',
+				$user_profiles_table
+			);
+			$rows_raw            = $wpdb->get_results( $query, ARRAY_A );
+			if ( ! is_array( $rows_raw ) ) {
+				$rows_raw = array();
+			}
+			$rows = self::normalize_rows( $rows_raw );
+			return array(
+				'success' => true,
+				'data'    => $rows,
+			);
 		};
 		
 		register_rest_route(
